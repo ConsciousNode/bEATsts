@@ -52,13 +52,10 @@ bEATsts is a ConsciousNode SoftWorks one-shot. Kham and Kehai wrote the spec, Hy
 - [AUDIT.md](AUDIT.md): our audit of version 2, and [AUDIT-v1.md](AUDIT-v1.md) for version 1. They cover what we checked in a real browser, what holds up, and what's still open.
 - `tests/run-all.js`: the game's own test suite (`node tests/run-all.js`; the browser tests need Chromium and a matching ChromeDriver via `CHROME_BIN` / `CHROMEDRIVER`).
 
-### Known issues (v2)
-- ~~The screen went black after every battle win (sound kept playing).~~ Fixed 2026-11-14.
-- One tap of an arrow key moves two tiles.
-- The Tour of Four Palates quest can't be completed.
-- In battle, the player's status box can cover the bottom of a wild bEATst's sprite.
-
-Version 2.1 is in the works: hand-designed maps with enterable buildings, real dungeons, a rival arc, and a suspiciously polite food-review syndicate.
+### Status (v2.1)
+Version 2.1 adds hand-built buildings with doors, enterable kitchens with puzzles, six dungeons, the Chrome Fork Syndicate and Rival Saffron's arc. Known issues from [the 2.1 audit](AUDIT.md):
+- The overworld ground is repainted with a noise pattern that makes paths hard to read. [`playtest-unpainted.html`](https://consciousnode.github.io/bEATsts/playtest-unpainted.html) shows the same game without it.
+- Multi-step quests complete when you talk to their final NPC, even if you skipped the earlier steps.
 
 ## License
 
