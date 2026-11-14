@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'">
+<title>bEATsts: a monster-collecting RPG about sandwiches, dumplings, noodles and soup</title>
+<!-- INLINE STYLE: landing page styles (Kehai Interim, ConsciousNode SoftWorks) -->
+<style>
+  :root { --bg:#14141c; --panel:#1e1e2a; --ink:#f8f8f0; --dim:#a8a8c0; --gold:#f8e888; --green:#98d830; --line:#34344a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  main { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; }
+  header { text-align:center; }
+  h1 { font-size: clamp(40px, 9vw, 72px); margin: 8px 0 0; color: var(--gold); letter-spacing: 2px; }
+  .tag { color: var(--dim); margin: 4px 0 24px; }
+  .hero { width: 100%; max-width: 720px; image-rendering: pixelated; border: 4px solid var(--line); border-radius: 10px; }
+  .play { display:inline-block; margin: 24px 0 8px; padding: 14px 34px; background: var(--green); color:#10200a; font-weight:700; font-size:20px; text-decoration:none; border-radius: 999px; }
+  .play:hover { filter: brightness(1.1); }
+  .small { color: var(--dim); font-size: 13px; }
+  h2 { color: var(--gold); margin-top: 48px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  figure { margin:0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  figure img { width:100%; image-rendering: pixelated; display:block; border-radius: 4px; }
+  figcaption { color: var(--dim); font-size: 13px; margin-top: 6px; text-align:center; }
+  .dex { width:100%; image-rendering: pixelated; border-radius: 8px; border: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  td:first-child { color: var(--gold); white-space: nowrap; }
+  ul { padding-left: 20px; }
+  a { color: var(--green); }
+  footer { margin-top: 56px; text-align:center; color: var(--dim); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img class="hero" src="screenshots/crops/title.png" alt="bEATsts title screen">
+    <h1>bEATsts</h1>
+    <p class="tag">A monster-collecting RPG where the monsters are food.<br>Sandwiches, dumplings, noodles and soup. Unhinged, but wholesome.</p>
+    <a class="play" href="beatsts.html">&#9654; Play in your browser</a>
+    <p class="small">One HTML file. No downloads, no network, no accounts. Keyboard or touch. Saves stay on your device.</p>
+  </header>
+
+  <h2>Set a place at the table</h2>
+  <p>You don't throw anything at a wild bEATst. You <b>plate</b> it: set a place, and if it likes the setting, it sits down and joins you. Fancier settings work better, from a humble Paper Plate all the way up to a Royal Banquet Setting.</p>
+  <div class="grid">
+    <figure><img src="screenshots/crops/plating_tiers.png" alt="Plating menu"><figcaption>Plating: every setting shows its join chance</figcaption></figure>
+    <figure><img src="screenshots/crops/battle_combo.png" alt="Battle with a flavor combo"><figcaption>Battles with Kitchen Temp and flavor combos</figcaption></figure>
+    <figure><img src="screenshots/crops/beatdex_151.png" alt="bEATdex"><figcaption>The bEATdex: can you fill it?</figcaption></figure>
+  </div>
+
+  <h2>Pantrylia</h2>
+  <p>Four regions, one per food family, each with its own towns, routes, kitchens, music and wildlife. Earn all 8 Kitchen Seals, outcook Rival Saffron, and face the Grand Tasting Hall.</p>
+  <div class="grid">
+    <figure><img src="screenshots/crops/region_bread_town.png" alt="Breadlands"><figcaption>Breadlands: Cruston Town</figcaption></figure>
+    <figure><img src="screenshots/crops/region_steam_town.png" alt="Steambay"><figcaption>Steambay: Bao Harbor</figcaption></figure>
+    <figure><img src="screenshots/crops/region_noodle_town.png" alt="Noodleridge"><figcaption>Noodleridge: Udon Hollow</figcaption></figure>
+    <figure><img src="screenshots/crops/region_broth_town.png" alt="Brothbasin"><figcaption>Brothbasin: Chowder Crossing</figcaption></figure>
+    <figure><img src="screenshots/crops/special_wok.png" alt="Wok Volcano"><figcaption>Wok Volcano</figcaption></figure>
+    <figure><img src="screenshots/crops/postgame.png" alt="Eternal Pantry"><figcaption>After the credits: the Eternal Pantry</figcaption></figure>
+  </div>
+
+  <h2>All 151</h2>
+  <img class="dex" src="screenshots/crops/dex-sheet.png" alt="All 151 bEATsts">
+  <p class="small">150 known species. Rumors say there's one more.</p>
+
+  <h2>Controls</h2>
+  <table>
+    <tr><td>Move</td><td>Arrow keys / WASD / on-screen D-pad</td></tr>
+    <tr><td>A (confirm, talk)</td><td>Z / Enter / Space</td></tr>
+    <tr><td>B (back)</td><td>X / Esc / Backspace</td></tr>
+    <tr><td>START (menu)</td><td>M</td></tr>
+    <tr><td>SELECT</td><td>N / Tab</td></tr>
+  </table>
+  <p class="small">Three save slots, plus Export / Import save as a file, under the screen.</p>
+
+  <footer>
+    bEATsts &middot; ConsciousNode SoftWorks &middot; MIT License &middot; built by Hydrogen, specced and audited by the studio crew<br>
+    Text set in ConsciousNode Sans and CNSW Serif &middot; <a href="https://github.com/ConsciousNode/bEATsts">source</a>
+  </footer>
+</main>
+</body>
+</html>
