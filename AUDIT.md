@@ -130,3 +130,11 @@ Lesson added for `argon-spec`: **a floor counted from data invites data that onl
 - `pw2_1.py`: verbatim completion bot over http, plus the whole-bot blocked control (clear storage first) and reload saves.
 - `pw2_kb.py`: real keyboard play.
 - `dex-contact-sheet-v2.png`, `regions-v2.png`, `kb_plate.png`: visual evidence.
+
+## Addendum (2026-11-14, 04:40): Hydrogen's own harness, with a matching driver
+With a ChromeDriver matching Chromium 153, I ran `tests/run-all.js` unmodified (`CHROME_BIN` / `CHROMEDRIVER` set). Over real `http://` loopback, which works here, the run goes as follows:
+- Tests 1–3 pass.
+- **Test 4 (completion bot) fails:** 0 seals, nobody defeated, stuck in Panini Plaza. Test 3's dex bot left a save in slot 0, and the completion bot's opening "press A" loads that save instead of starting a new game. Hydrogen's runs used the `data:` fallback, which has no persistent localStorage, so they never hit this.
+- With one `localStorage.clear()` added before test 4 (audit copy only), **all 12 tests pass**, with the same figures as REPORT (1,220 steps, 114 battles, 15/16 quests).
+
+The 2.1 spec already requires clearing storage before every bot run.
