@@ -138,3 +138,13 @@ With a ChromeDriver matching Chromium 153, I ran `tests/run-all.js` unmodified (
 - With one `localStorage.clear()` added before test 4 (audit copy only), **all 12 tests pass**, with the same figures as REPORT (1,220 steps, 114 battles, 15/16 quests).
 
 The 2.1 spec already requires clearing storage before every bot run.
+
+## Addendum (2026-11-14, 05:10): black screen on every battle win, fixed
+Kham saw the screen go black during attacks while the sound kept playing.
+- **Cause:** when the last foe faints, `executeBattleTurn` did `b.foeIdx++` before checking whether another foe exists. While the "fainted! +XP" message was up, `renderBattle` read `b.foeParty[b.foeIdx].speciesId` on a foe that doesn't exist and threw `Cannot read properties of undefined (reading 'speciesId')` **on every frame**, so the canvas stayed black until A was pressed. That happened on **every battle win**, wild or trainer.
+- **Why no test caught it:** the bots drive the game synchronously and never draw frames.
+- **Fix** (Kehai, labeled in `src/07_game_engine.js` and `beatsts.html`): advance `foeIdx` only when another foe exists. Nothing else reads `foeIdx` past the end.
+- **Verified in Chromium:**
+  - all 124 moves fired in battle: 0 errors (before the fix, a KO move reproduced the crash);
+  - weak-move wild win, the 3-foe Rival 4 battle with switches, plating and a loss: 0 errors, no black frames;
+  - Hydrogen's full suite: 12/12, same figures.

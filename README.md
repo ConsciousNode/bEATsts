@@ -53,6 +53,7 @@ bEATsts is a ConsciousNode SoftWorks one-shot. Kham and Kehai wrote the spec, Hy
 - `tests/run-all.js`: the game's own test suite (`node tests/run-all.js`; the browser tests need Chromium and a matching ChromeDriver via `CHROME_BIN` / `CHROMEDRIVER`).
 
 ### Known issues (v2)
+- ~~The screen went black after every battle win (sound kept playing).~~ Fixed 2026-11-14.
 - One tap of an arrow key moves two tiles.
 - The Tour of Four Palates quest can't be completed.
 - In battle, the player's status box can cover the bottom of a wild bEATst's sprite.

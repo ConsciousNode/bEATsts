@@ -918,8 +918,10 @@ const Game = {
       const xpGain = Math.floor(foe.level * 16 * (b.isWild ? 1 : 1.4));
       msg += `${foe.nickname} fainted! +${xpGain} XP! `;
       msg += this.grantXp(player, xpGain);
-      b.foeIdx++;
-      if (b.foeIdx < b.foeParty.length) {
+      // Kehai fix 2026-11-14: only advance when another foe exists, so the battle
+      // screen never indexes past the last foe (was: black screen on every win).
+      if (b.foeIdx + 1 < b.foeParty.length) {
+        b.foeIdx++;
         msg += `${b.trainer.name} sent out ${b.foeParty[b.foeIdx].nickname}!`;
       } else {
         b.pendingEnd = 'WIN';
