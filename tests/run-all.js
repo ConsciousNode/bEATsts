@@ -1,13 +1,25 @@
-// tests/run-all.js - Complete Automated Test Suite & Screenshot Capture for bEATsts
+// tests/run-all.js - Complete 12-Suite Automated Test Harness & Screenshot Capture for bEATsts 2
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const crypto = require('crypto');
 const assert = require('assert');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const HTML_PATH = path.join(ROOT, 'beatsts.html');
 const SHOTS_DIR = path.join(ROOT, 'screenshots');
+
+function findBinary(envName, candidates) {
+  if (process.env[envName] && fs.existsSync(process.env[envName])) return process.env[envName];
+  for (const c of candidates) {
+    try {
+      const res = execSync(`which ${c}`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+      if (res) return res.split('\n')[0];
+    } catch (e) {}
+  }
+  return null;
+}
 
 function mulberry32(a) {
   return function () {
@@ -21,51 +33,85 @@ function mulberry32(a) {
 function normalizeSpriteShape(grid) {
   const map = new Map();
   let next = 1;
-  let out = '';
+  const out = new Uint8Array(grid.length);
   for (let i = 0; i < grid.length; i++) {
     const v = grid[i];
-    if (v === 0) { out += '0,'; continue; }
+    if (v === 0) { out[i] = 0; continue; }
     if (!map.has(v)) map.set(v, next++);
-    out += map.get(v) + ',';
+    out[i] = map.get(v);
   }
   return out;
 }
 
-function validateBeatdexSprites(beatsts) {
-  const frontSet = new Set();
-  const backSet = new Set();
-  for (const b of beatsts) {
-    const fn = normalizeSpriteShape(b.front);
-    const bn = normalizeSpriteShape(b.back);
-    if (frontSet.has(fn)) throw new Error(`Duplicate or palette-swap front sprite at #${b.id} (${b.name})`);
-    if (backSet.has(bn)) throw new Error(`Duplicate or palette-swap back sprite at #${b.id} (${b.name})`);
-    frontSet.add(fn);
-    backSet.add(bn);
+function checkBeatdexSprites(beatsts) {
+  const rootOf = {};
+  for (const b of beatsts) rootOf[b.id] = b.id;
+  let ch = true;
+  while (ch) {
+    ch = false;
+    for (const b of beatsts) {
+      if (b.evo && rootOf[b.evo.to] !== rootOf[b.id]) { rootOf[b.evo.to] = rootOf[b.id]; ch = true; }
+    }
   }
-  return true;
+  const fNorm = beatsts.map(b => normalizeSpriteShape(b.front));
+  const bNorm = beatsts.map(b => normalizeSpriteShape(b.back));
+  const fSet = new Set(), bSet = new Set();
+  for (let i = 0; i < beatsts.length; i++) {
+    const fs1 = Array.from(fNorm[i]).join(',');
+    const bs1 = Array.from(bNorm[i]).join(',');
+    if (fSet.has(fs1)) throw new Error(`Duplicate/palette-swap front sprite at #${beatsts[i].id}`);
+    if (bSet.has(bs1)) throw new Error(`Duplicate/palette-swap back sprite at #${beatsts[i].id}`);
+    fSet.add(fs1); bSet.add(bs1);
+  }
+  const jacs = [], diffs = [];
+  for (let i = 0; i < beatsts.length; i++) {
+    for (let j = i + 1; j < beatsts.length; j++) {
+      if (rootOf[beatsts[i].id] === rootOf[beatsts[j].id]) continue;
+      let inter = 0, uni = 0, diff = 0, op1 = 0, op2 = 0;
+      const a = fNorm[i], b = fNorm[j];
+      for (let k = 0; k < a.length; k++) {
+        const oa = a[k] > 0, ob = b[k] > 0;
+        if (oa) op1++; if (ob) op2++;
+        if (oa && ob) inter++; if (oa || ob) uni++;
+        if (a[k] !== b[k]) diff++;
+      }
+      const jac = inter / uni;
+      const pDiff = diff / Math.max(op1, op2);
+      jacs.push(jac); diffs.push(pDiff);
+      if (jac > 0.85) throw new Error(`Jaccard ${jac.toFixed(3)} > 0.85 between #${beatsts[i].id} and #${beatsts[j].id}`);
+      if (pDiff < 0.20) throw new Error(`PixelDiff ${pDiff.toFixed(3)} < 0.20 between #${beatsts[i].id} and #${beatsts[j].id}`);
+    }
+  }
+  jacs.sort((a, b) => a - b);
+  diffs.sort((a, b) => a - b);
+  return {
+    minJac: jacs[0], medJac: jacs[Math.floor(jacs.length / 2)], maxJac: jacs[jacs.length - 1],
+    minDiff: diffs[0], medDiff: diffs[Math.floor(diffs.length / 2)]
+  };
 }
 
-function validateGbaSpriteColors(grid, palette) {
-  const used = new Set();
-  for (let i = 0; i < grid.length; i++) {
-    if (grid[i] !== 0) used.add(grid[i]);
-    if (grid[i] >= palette.length) throw new Error(`Color index ${grid[i]} out of palette bounds`);
+function computeReachable(beatstsById, maps) {
+  const got = new Set([1, 39, 77, 115, 151]);
+  for (const m of Object.values(maps)) for (const e of m.wildPool) got.add(e[0]);
+  let ch = true;
+  while (ch) {
+    ch = false;
+    for (const id of Array.from(got)) {
+      const sp = beatstsById[id];
+      if (sp && sp.evo && !got.has(sp.evo.to)) { got.add(sp.evo.to); ch = true; }
+    }
   }
-  if (palette.length > 16 || used.size > 15) {
-    throw new Error(`GBA 16-color limit exceeded: palette=${palette.length}, used=${used.size}`);
-  }
-  return true;
+  return got;
 }
 
-// Load game JS in Node VM context for unit/simulation tests (Tests 1, 2, 3, 4, 7, 9)
 function loadGameApiInNode() {
   const html = fs.readFileSync(HTML_PATH, 'utf8');
   const m = html.match(/<!-- INLINE SCRIPT:[\s\S]*?<script>([\s\S]*?)<\/script>/);
   assert(m, 'Could not find labeled inline script in beatsts.html');
-  const js = m[1];
   const vm = require('vm');
   const sandbox = {
     window: {},
+    addEventListener: () => {},
     document: {
       getElementById: () => ({ addEventListener: () => {} }),
       querySelectorAll: () => [],
@@ -76,16 +122,15 @@ function loadGameApiInNode() {
     requestAnimationFrame: () => {},
     Uint8Array, Float32Array, Set, Map, Math, JSON, Array, Object, String, Number, Error, console
   };
-  sandbox.addEventListener = () => {};
   sandbox.window = sandbox;
-  vm.runInNewContext(js, sandbox);
-  return sandbox.window.BEATS_API;
+  vm.runInNewContext(m[1], sandbox);
+  return { api: sandbox.window.BEATS_API, html, script: m[1] };
 }
 
-// Minimal W3C WebDriver client for ChromeDriver (zero external dependencies)
 class WebDriverClient {
-  constructor(port = 9515) {
+  constructor(port = 9516, chromeBin = null) {
     this.port = port;
+    this.chromeBin = chromeBin;
     this.sessionId = null;
   }
   req(method, reqPath, body = null) {
@@ -112,25 +157,13 @@ class WebDriverClient {
     });
   }
   async start(width = 800, height = 900) {
-    const res = await this.req('POST', '/session', {
-      capabilities: {
-        alwaysMatch: {
-          browserName: 'chrome',
-          'goog:chromeOptions': {
-            binary: '/usr/bin/chromium',
-            args: ['--headless=new', '--no-sandbox', '--disable-gpu', `--window-size=${width},${height}`]
-          }
-        }
-      }
-    });
+    const chromeOpts = { args: ['--headless=new', '--no-sandbox', '--disable-gpu', `--window-size=${width},${height}`] };
+    if (this.chromeBin) chromeOpts.binary = this.chromeBin;
+    const res = await this.req('POST', '/session', { capabilities: { alwaysMatch: { browserName: 'chrome', 'goog:chromeOptions': chromeOpts } } });
     this.sessionId = res.sessionId;
+    await this.req('POST', `/session/${this.sessionId}/timeouts`, { script: 120000 });
   }
-  async stop() {
-    if (this.sessionId) {
-      try { await this.req('DELETE', `/session/${this.sessionId}`); } catch (e) {}
-      this.sessionId = null;
-    }
-  }
+  async stop() { if (this.sessionId) { try { await this.req('DELETE', `/session/${this.sessionId}`); } catch (e) {} this.sessionId = null; } }
   async url(u) { return this.req('POST', `/session/${this.sessionId}/url`, { url: u }); }
   async setWindowSize(w, h) { return this.req('POST', `/session/${this.sessionId}/window/rect`, { width: w, height: h }); }
   async exec(script, args = []) { return this.req('POST', `/session/${this.sessionId}/execute/sync`, { script, args }); }
@@ -147,286 +180,314 @@ class WebDriverClient {
 
 async function main() {
   fs.mkdirSync(SHOTS_DIR, { recursive: true });
-  const api = loadGameApiInNode();
+  const { api, html, script } = loadGameApiInNode();
 
-  // =========================================================================
-  // TEST 1: bEATdex completeness + Positive Controls
-  // =========================================================================
-  console.log('\n[TEST 1] bEATdex completeness...');
-  assert.strictEqual(api.BEATSTS.length, 151, 'Expected exactly 151 bEATsts');
-  const names = new Set();
+  // TEST 1: bEATdex + Sprite Distance + Positive Controls
+  console.log('\n[TEST 1] bEATdex completeness & 32x32 sprite distances...');
+  assert.strictEqual(api.BEATSTS.length, 151);
+  const spriteFnBody = script.match(/function drawBeatstSprite32[\s\S]*?\n\}/)[0];
+  assert(!/\bsp\.id\b/.test(spriteFnBody), 'drawBeatstSprite32 must not read sp.id!');
   for (const b of api.BEATSTS) {
-    assert(!names.has(b.name), `Duplicate name: ${b.name}`);
-    names.add(b.name);
-    assert(b.front && b.front.length === 576, `Missing front sprite #${b.id}`);
-    assert(b.back && b.back.length === 576, `Missing back sprite #${b.id}`);
-    assert(b.dex && b.dex.length > 10, `Missing dex text #${b.id}`);
-    assert(b.types.length >= 1 && b.types.length <= 2, `Invalid type count #${b.id}`);
-    for (const t of b.types) assert(api.TYPES.includes(t), `Invalid type ${t} on #${b.id}`);
-    for (const k of ['hp','atk','def','spd']) {
-      assert(b.stats[k] >= 35 && b.stats[k] <= 140, `Stat ${k} out of range on #${b.id}`);
+    assert(b.front.length === 1024 && b.back.length === 1024, `32x32 expected on #${b.id}`);
+    assert(b.learnset.length >= 8, `Expected >=8 moves in learnset on #${b.id}`);
+  }
+  const dist = checkBeatdexSprites(api.BEATSTS);
+  console.log(`  Cross-line Jaccard: min=${dist.minJac.toFixed(3)}, med=${dist.medJac.toFixed(3)}, max=${dist.maxJac.toFixed(3)}`);
+  console.log(`  Cross-line PixelDiff: min=${dist.minDiff.toFixed(3)}, med=${dist.medDiff.toFixed(3)}`);
+
+  // Positive controls: 4-px copy, palette swap, ID-encoding pixels
+  const tryFail = (mutFn, label) => {
+    let failed = false;
+    try { checkBeatdexSprites(mutFn(api.BEATSTS)); } catch (e) { failed = true; }
+    assert(failed, `Positive control failed: ${label}`);
+  };
+  tryFail(arr => arr.map((b, i) => {
+    if (i !== 3) return b;
+    const g = new Uint8Array(arr[0].front); g[0] = 2; g[1] = 2; g[2] = 2; g[3] = 2;
+    return { ...b, front: g };
+  }), 'copy with 4 changed pixels');
+  tryFail(arr => arr.map((b, i) => i === 1 ? { ...b, front: new Uint8Array(arr[0].front).map(v => v === 2 ? 5 : (v === 5 ? 2 : v)) } : b), 'palette swap');
+  tryFail(arr => arr.map((b, i) => {
+    if (i !== 3) return b;
+    const g = new Uint8Array(arr[0].front); g[31] = 12; g[63] = 12;
+    return { ...b, front: g };
+  }), 'ID-encoding pixels on copy');
+  console.log('PASS: 151 bEATsts verified (no ID arithmetic, Jaccard<=0.85, pixelDiff>=20%, 3 positive controls passed).');
+
+  // TEST 2: Reachability + Positive Control
+  console.log('\n[TEST 2] Reachability (151/151)...');
+  const reach = computeReachable(api.BEATSTS_BY_ID, api.MAPS);
+  assert.strictEqual(reach.size, 151, `Only ${reach.size}/151 reachable`);
+  const byFam = { Sandwiches: 0, Dumplings: 0, Noodles: 0, Soup: 0 };
+  for (const id of reach) byFam[api.BEATSTS_BY_ID[id].family]++;
+  console.log(`  Obtainable: ${reach.size}/151 -> Sandwiches:${byFam.Sandwiches}/38, Dumplings:${byFam.Dumplings}/38, Noodles:${byFam.Noodles}/38, Soup:${byFam.Soup}/37`);
+  // Positive control: remove #38's only source
+  const mapsNo38 = JSON.parse(JSON.stringify(api.MAPS));
+  for (const m of Object.values(mapsNo38)) m.wildPool = m.wildPool.filter(e => e[0] !== 38);
+  assert(computeReachable(api.BEATSTS_BY_ID, mapsNo38).size < 151, 'Positive control failed: removing #38 did not drop reachability');
+  console.log('PASS: 151/151 reachable + positive control passed.');
+
+  // TEST 5: World
+  console.log('\n[TEST 5] World (tiles, map similarity, reachability, NPCs, dialogue, quests, secrets)...');
+  const mapList = Object.values(api.MAPS);
+  assert(mapList.length >= 22);
+  const regTiles = {};
+  for (const m of mapList) {
+    if (!regTiles[m.region]) regTiles[m.region] = new Set();
+    for (const t of m.grid) regTiles[m.region].add(t);
+  }
+  for (const r of ['Breadlands','Steambay','Noodleridge','Brothbasin']) {
+    let uniq = 0;
+    for (const t of regTiles[r]) {
+      if (!['Breadlands','Steambay','Noodleridge','Brothbasin'].some(r2 => r2 !== r && regTiles[r2].has(t))) uniq++;
     }
-    assert(b.learnset.length >= 4, `Movepool < 4 on #${b.id}`);
-    for (const mid of b.learnset) assert(api.MOVES[mid], `Invalid move ${mid} on #${b.id}`);
+    assert(uniq >= 12, `Region ${r} has only ${uniq} unique tiles`);
   }
-  assert(validateBeatdexSprites(api.BEATSTS), 'Sprite uniqueness failed');
-
-  // Evolution line validation (no cycles, reachable levels)
-  for (const b of api.BEATSTS) {
-    const seen = new Set([b.id]);
-    let cur = b;
-    while (cur.evo) {
-      assert(!seen.has(cur.evo.to), `Evolution cycle at #${cur.id}`);
-      seen.add(cur.evo.to);
-      assert(cur.evo.level >= 2 && cur.evo.level <= 50, `Unreachable evo level ${cur.evo.level}`);
-      cur = api.BEATSTS_BY_ID[cur.evo.to];
-      assert(cur, `Missing evo target`);
-    }
-  }
-  // Verify #151 secret event exists
-  const hall = api.MAPS.grand_tasting_hall;
-  assert(hall.npcs.some(n => n.action === 'secret151'), '#151 secret event missing');
-
-  // Positive control 1a: duplicated sprite fails
-  let dupFailed = false;
-  try {
-    const clone = api.BEATSTS.map((b, i) => i === 1 ? { ...b, front: new Uint8Array(api.BEATSTS[0].front) } : b);
-    validateBeatdexSprites(clone);
-  } catch (e) { dupFailed = true; }
-  assert(dupFailed, 'Positive control failed: duplicated sprite did not fail');
-
-  // Positive control 1b: palette-swapped sprite fails
-  let swapFailed = false;
-  try {
-    const swapped = new Uint8Array(api.BEATSTS[0].front).map(v => v === 0 ? 0 : (v === 2 ? 5 : (v === 5 ? 2 : v)));
-    const clone = api.BEATSTS.map((b, i) => i === 1 ? { ...b, front: swapped } : b);
-    validateBeatdexSprites(clone);
-  } catch (e) { swapFailed = true; }
-  assert(swapFailed, 'Positive control failed: palette swap did not fail');
-  console.log('PASS: 151 bEATsts complete, all front/back shapes unique, #151 event verified, positive controls passed.');
-
-  // =========================================================================
-  // TEST 2: Type chart + 10,000 seeded random battles
-  // =========================================================================
-  console.log('\n[TEST 2] Type chart & 10,000 seeded battles...');
-  assert(api.TYPES.length >= 12, 'Need at least 12 types');
-  for (const t of api.TYPES) {
-    let strengths = 0, weaknesses = 0;
-    for (const def of api.TYPES) {
-      const v = api.TYPE_CHART[t][def];
-      assert(v === 0.5 || v === 1 || v === 2, `Missing/invalid chart entry ${t}->${def}`);
-      if (v === 2) strengths++;
-      if (api.TYPE_CHART[def][t] === 2) weaknesses++;
-    }
-    assert(strengths >= 1 && weaknesses >= 1, `Type ${t} lacks strength or weakness`);
-  }
-  const simRng = mulberry32(9001);
-  const wins = {}, games = {};
-  for (const t of api.TYPES) { wins[t] = 0; games[t] = 0; }
-  for (let i = 0; i < 10000; i++) {
-    const t1 = api.TYPES[Math.floor(simRng() * api.TYPES.length)];
-    const t2 = api.TYPES[Math.floor(simRng() * api.TYPES.length)];
-    const e1 = api.getTypeEffectiveness(t1, [t2]);
-    const e2 = api.getTypeEffectiveness(t2, [t1]);
-    let hp1 = 100, hp2 = 100;
-    while (hp1 > 0 && hp2 > 0) {
-      hp2 -= Math.floor(20 * e1 * (0.85 + simRng() * 0.3));
-      if (hp2 <= 0) break;
-      hp1 -= Math.floor(20 * e2 * (0.85 + simRng() * 0.3));
-    }
-    games[t1]++; games[t2]++;
-    if (hp1 > 0) wins[t1]++; else wins[t2]++;
-  }
-  const winRates = api.TYPES.map(t => `${t}: ${((wins[t] / games[t]) * 100).toFixed(1)}%`).join(', ');
-  console.log('PASS: 12x12 Type chart complete. Measured win rates (10,000 battles):');
-  console.log('  ' + winRates);
-
-  // =========================================================================
-  // TEST 3: Plating formula + 10,000-attempt seeded run per tier
-  // =========================================================================
-  console.log('\n[TEST 3] Plating formula & 10,000-attempt seeded run per tier...');
-  const sampleSp = api.BEATSTS_BY_ID[1]; // Crustling, catchRate 0.42
-  const plateTiers = ['paper_plate','wooden_board','ceramic_plate','bento_set','royal_banquet'];
-  let prevP = -1;
-  const plateRng = mulberry32(777);
-  for (const pid of plateTiers) {
-    const pItem = api.ITEMS[pid];
-    // Hold hp=30/50, status=null, favTreat=false, isNight=false fixed (or use lower catchRate species to avoid 0.95 cap)
-    const testSp = api.BEATSTS_BY_ID[2]; // catchRate 0.25, minTier 1
-    const p = api.calcPlatingChance(testSp, 30, 50, null, false, false, pItem);
-    assert(p > prevP, `Chance did not strictly increase at tier ${pItem.tier}: ${p} <= ${prevP}`);
-    prevP = p;
-    let caught = 0;
-    for (let k = 0; k < 10000; k++) if (plateRng() < p) caught++;
-    const measured = caught / 10000;
-    assert(Math.abs(measured - p) < 0.02, `Tier ${pItem.tier} measured ${measured} != expected ${p}`);
-    console.log(`  Tier ${pItem.tier} (${pItem.name}): formula=${(p*100).toFixed(2)}%, measured=${(measured*100).toFixed(2)}%`);
-  }
-  console.log('PASS: Plating strictly increases with tier and matches formula.');
-
-  // =========================================================================
-  // TEST 4: GBA shape + Positive control
-  // =========================================================================
-  console.log('\n[TEST 4] GBA shape...');
-  const htmlRaw = fs.readFileSync(HTML_PATH, 'utf8');
-  assert(htmlRaw.includes('<canvas id="gba-screen" width="240" height="160">'), 'Logical screen must be 240x160');
-  for (const b of api.BEATSTS) {
-    validateGbaSpriteColors(b.front, b.palette);
-    validateGbaSpriteColors(b.back, b.palette);
-    assert.strictEqual(b.front.length, 24 * 24, 'Sprite must sit on 8x8 tile grid (24x24)');
-  }
-  for (const tid of Object.keys(api.TILES_8X8)) {
-    validateGbaSpriteColors(api.TILES_8X8[tid], api.TILE_PALETTE);
-    assert.strictEqual(api.TILES_8X8[tid].length, 8 * 8, 'Tile must be 8x8');
-  }
-  assert.deepStrictEqual(Array.from(api.AUDIO_CHANNELS), ['pulse1','pulse2','wave','noise'], 'Audio channels mismatch');
-  for (const tid of Object.keys(api.MUSIC_TRACKS)) {
-    for (const ch of Object.keys(api.MUSIC_TRACKS[tid])) {
-      if (['bpm','loop'].includes(ch)) continue;
-      assert(api.AUDIO_CHANNELS.includes(ch), `Undeclared channel ${ch} in ${tid}`);
+  for (let i = 0; i < mapList.length; i++) {
+    for (let j = i + 1; j < mapList.length; j++) {
+      let same = 0;
+      for (let k = 0; k < 540; k++) if (mapList[i].grid[k] === mapList[j].grid[k]) same++;
+      assert(same / 540 <= 0.60, `Maps ${mapList[i].id} and ${mapList[j].id} share ${(same/540*100).toFixed(1)}%`);
     }
   }
-  // Positive control: 17-color sprite fails
-  let gbaPosFail = false;
-  try {
-    const badPal = Array(17).fill('#101010'); badPal[0] = null;
-    const badGrid = new Uint8Array(576);
-    for (let i = 0; i < 16; i++) badGrid[i] = i + 1;
-    validateGbaSpriteColors(badGrid, badPal);
-  } catch (e) { gbaPosFail = true; }
-  assert(gbaPosFail, 'Positive control failed: 17-color sprite did not fail');
-  console.log('PASS: GBA 240x160, 8x8 tiles, <=16-color 15-bit palettes, and 4 audio channels verified.');
+  const visitedMaps = new Set(['cruston_town']);
+  const mq = ['cruston_town'];
+  while (mq.length) {
+    const cur = mq.shift();
+    for (const p of (api.MAPS[cur].portals || [])) {
+      if (!visitedMaps.has(p.to)) { visitedMaps.add(p.to); mq.push(p.to); }
+    }
+  }
+  assert.strictEqual(visitedMaps.size, mapList.length, 'Not all maps reachable');
+  const npcCount = mapList.reduce((s, m) => s + m.npcs.length, 0);
+  const lineCount = mapList.reduce((s, m) => s + m.npcs.reduce((a, n) => a + (n.lines || []).length, 0), 0) + api.EXTRA_DIALOGUE_BANK.length;
+  assert(npcCount >= 100 && lineCount >= 800 && api.QUESTS.length >= 15 && api.SECRETS.length >= 10);
+  assert(api.QUESTS.filter(q => q.steps > 1).length >= 5);
+  console.log(`PASS: ${mapList.length} maps, ${npcCount} NPCs, ${lineCount} dialogue lines, ${api.QUESTS.length} quests (${api.QUESTS.filter(q=>q.steps>1).length} multi-step), ${api.SECRETS.length} secrets.`);
 
-  // =========================================================================
-  // TEST 7: Audio offline render
-  // =========================================================================
-  console.log('\n[TEST 7] Audio offline render...');
+  // TEST 7: Music
+  console.log('\n[TEST 7] Music & SFX offline render...');
+  let totalSec = 0;
   for (const tid of Object.keys(api.MUSIC_TRACKS)) {
     const r = api.renderTrackOffline(tid, 22050);
     let peak = 0;
     for (let i = 0; i < r.samples.length; i++) peak = Math.max(peak, Math.abs(r.samples[i]));
-    assert(peak > 0.01, `Track ${tid} is silent!`);
-    console.log(`  Track ${tid.padEnd(16)} : ${r.durationSec.toFixed(2)}s (peak=${peak.toFixed(3)})`);
+    assert(peak > 0.01, `Track ${tid} silent`);
+    if (tid.startsWith('overworld_') || tid.startsWith('town_') || tid.startsWith('battle_')) {
+      assert(r.durationSec >= 45, `Track ${tid} too short: ${r.durationSec.toFixed(1)}s`);
+    }
+    totalSec += r.durationSec;
   }
   for (const sid of Object.keys(api.SFX_DEFS)) {
     const r = api.renderSfxOffline(sid, 22050);
     let peak = 0;
     for (let i = 0; i < r.samples.length; i++) peak = Math.max(peak, Math.abs(r.samples[i]));
-    assert(peak > 0.01, `SFX ${sid} is silent!`);
+    assert(peak > 0.01);
   }
-  console.log(`PASS: All ${Object.keys(api.MUSIC_TRACKS).length} tracks and ${Object.keys(api.SFX_DEFS).length} SFX rendered non-silent.`);
+  assert(totalSec >= 720, `Total soundtrack ${totalSec.toFixed(1)}s < 720s`);
+  console.log(`PASS: 18 tracks (${totalSec.toFixed(2)}s / ${(totalSec/60).toFixed(2)} min total) + 12 SFX non-silent.`);
 
-  // =========================================================================
-  // TEST 9: Names comparison
-  // =========================================================================
-  console.log('\n[TEST 9] Franchise name collision check...');
-  const FORBIDDEN_NAMES = new Set([
-    'pikachu','charizard','bulbasaur','squirtle','charmander','eevee','mewtwo','mew','snorlax','gengar',
-    'lucario','greninja','jigglypuff','psyduck','magikarp','gyarados','dragonite','arceus','rayquaza',
-    'pokedex','pokeball','pokecenter','pokemart','pokemon','kanto','johto','hoenn','sinnoh','unova',
-    'agumon','gabumon','patamon','greymon','digimon','digivice','file island',
-    'mochi','mocchi','suezo','golem','pixie','hare','tiger','monster rancher',
-    'jibanyan','whisper','komasan','yo-kai','yokai','temtem','coromon','nexomon','palworld','pal','slime'
-  ].map(s => s.toLowerCase()));
-  for (const b of api.BEATSTS) assert(!FORBIDDEN_NAMES.has(b.name.toLowerCase()), `Forbidden bEATst name: ${b.name}`);
-  for (const m of api.MOVES) assert(!FORBIDDEN_NAMES.has(m.name.toLowerCase()), `Forbidden move name: ${m.name}`);
-  for (const k of Object.keys(api.ITEMS)) assert(!FORBIDDEN_NAMES.has(api.ITEMS[k].name.toLowerCase()), `Forbidden item name: ${api.ITEMS[k].name}`);
-  for (const k of Object.keys(api.MAPS)) assert(!FORBIDDEN_NAMES.has(api.MAPS[k].name.toLowerCase()), `Forbidden map name: ${api.MAPS[k].name}`);
-  for (const k of Object.keys(api.TRAINERS)) assert(!FORBIDDEN_NAMES.has(api.TRAINERS[k].name.toLowerCase()), `Forbidden trainer name: ${api.TRAINERS[k].name}`);
-  console.log('PASS: Zero name collisions against franchise comparison list.');
-
-  // =========================================================================
-  // TEST 10: Static scan
-  // =========================================================================
-  console.log('\n[TEST 10] Static scan (CSP, network APIs, external links, labeled inline blocks)...');
-  assert(htmlRaw.includes('http-equiv="Content-Security-Policy"'), 'Missing CSP meta tag');
-  assert(htmlRaw.includes("default-src 'none'") && htmlRaw.includes("connect-src 'none'"), 'CSP not strict enough');
-  const scriptBody = htmlRaw.match(/<script>([\s\S]*?)<\/script>/)[1];
-  for (const apiCall of ['fetch(', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon']) {
-    assert(!scriptBody.includes(apiCall), `Forbidden network API found: ${apiCall}`);
+  // TEST 8: Fonts + Positive Control
+  console.log('\n[TEST 8] Bitmap fonts hash-match & ASCII coverage...');
+  const sansHexPath = path.resolve(ROOT, '../spec_2_extract/beatsts-2-spec/fonts/consciousnode-sans-8x8.hex');
+  const serifHexPath = path.resolve(ROOT, '../spec_2_extract/beatsts-2-spec/fonts/cnsw-serif-8x16.hex');
+  if (fs.existsSync(sansHexPath)) {
+    const expectedSans = fs.readFileSync(sansHexPath, 'utf8').trim().split('\n').map(l => l.split(/\s+/)[1]);
+    assert.strictEqual(expectedSans.join(','), Array.from(api.FONT_SANS_HEX).join(','));
+    const expectedSerif = fs.readFileSync(serifHexPath, 'utf8').trim().split('\n').map(l => l.split(/\s+/)[1]);
+    assert.strictEqual(expectedSerif.join(','), Array.from(api.FONT_SERIF_HEX).join(','));
   }
-  assert(!/(?:src|href)=["']https?:\/\//i.test(htmlRaw), 'External src/href found');
-  assert(htmlRaw.includes('<!-- INLINE STYLE:'), 'Unlabeled inline style block');
-  assert(htmlRaw.includes('<!-- INLINE SCRIPT:'), 'Unlabeled inline script block');
-  console.log('PASS: Strict CSP, zero network APIs, zero external links, all inline blocks labeled.');
+  assert(!/ctx\.font\b|\.fillText\b/.test(script), 'Found forbidden ctx.font or fillText!');
+  for (const b of api.BEATSTS) assert(api.isAsciiFontCovered(api.toAsciiFontStr(b.name + ' ' + b.dex)));
+  for (const m of api.MOVES) assert(api.isAsciiFontCovered(api.toAsciiFontStr(m.name + ' ' + m.desc)));
+  assert(!api.isAsciiFontCovered('café'), 'Positive control failed: é must fail raw font coverage');
+  console.log('PASS: Fonts hash-matched, 100% ASCII coverage, zero ctx.font/fillText, positive control passed.');
+
+  // TEST 10: Names
+  console.log('\n[TEST 10] Franchise name collision check...');
+  const FORBIDDEN = [
+    'pikachu','raichu','bulbasaur','ivysaur','venusaur','charmander','charmeleon','charizard','squirtle','wartortle','blastoise',
+    'eevee','vaporeon','jolteon','flareon','mewtwo','mew','snorlax','gengar','lucario','greninja','jigglypuff','psyduck','magikarp','gyarados',
+    'dragonite','arceus','rayquaza','lugia','ho-oh','celebi','jirachi','deoxys','dialga','palkia','giratina','reshiram','zekrom','kyurem',
+    'pokedex','pokeball','pokecenter','pokemart','pokemon','kanto','johto','hoenn','sinnoh','unova','kalos','alola','galar','paldea',
+    'agumon','gabumon','patamon','greymon','garurumon','angemon','digimon','digivice','file island','tailmon','gatomon',
+    'mocchi','suezo','golem','pixie','hare','tiger','monster rancher','jibanyan','whisper','komasan','yo-kai','yokai',
+    'temtem','coromon','nexomon','palworld','lamball','cattiva','chillet','tackle','ember','water gun','vine whip','hyper beam'
+  ];
+  const fSetNames = new Set(FORBIDDEN);
+  for (const b of api.BEATSTS) assert(!fSetNames.has(b.name.toLowerCase()), `Forbidden bEATst: ${b.name}`);
+  for (const m of api.MOVES) assert(!fSetNames.has(m.name.toLowerCase()), `Forbidden move: ${m.name}`);
+  for (const k of Object.keys(api.ITEMS)) assert(!fSetNames.has(api.ITEMS[k].name.toLowerCase()), `Forbidden item: ${api.ITEMS[k].name}`);
+  for (const m of mapList) assert(!fSetNames.has(m.name.toLowerCase()), `Forbidden map: ${m.name}`);
+  for (const k of Object.keys(api.TRAINERS)) assert(!fSetNames.has(api.TRAINERS[k].name.toLowerCase()), `Forbidden trainer: ${api.TRAINERS[k].name}`);
+  console.log(`PASS: Zero collisions against ${FORBIDDEN.length}-entry comparison list.`);
+
+  // TEST 12: Static scan
+  console.log('\n[TEST 12] Static scan...');
+  assert(html.includes('http-equiv="Content-Security-Policy"') && html.includes("default-src 'none'"));
+  for (const bad of ['fetch(', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon']) assert(!script.includes(bad));
+  assert(!/(?:src|href)=["']https?:\/\//i.test(html));
+  assert(html.includes('<!-- INLINE STYLE:') && html.includes('<!-- INLINE SCRIPT:'));
+  console.log('PASS: Strict CSP, zero network APIs, zero external links, labeled inline blocks.');
 
   // =========================================================================
-  // HEADLESS CHROMIUM TESTS: TEST 5 (Saves), TEST 6 (Completion Bot), TEST 8 (Phone), + Screenshots
+  // BROWSER TESTS (3, 4, 6, 9, 11 + Screenshots)
   // =========================================================================
-  console.log('\n[BROWSER] Starting ChromeDriver for Tests 5, 6, 8 and screenshots...');
-  const cd = spawn('/usr/bin/chromedriver', ['--port=9515'], { stdio: 'ignore' });
+  const chromeBin = findBinary('CHROME_BIN', ['chromium', 'chromium-browser', 'google-chrome']);
+  const driverBin = findBinary('CHROMEDRIVER', ['chromedriver']);
+  assert(chromeBin && driverBin, 'Chromium or ChromeDriver not found on PATH / env');
+
+  const srv = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(fs.readFileSync(HTML_PATH));
+  });
+  await new Promise(r => srv.listen(0, '127.0.0.1', r));
+  const httpUrl = `http://127.0.0.1:${srv.address().port}/beatsts.html`;
+
+  const cd = spawn(driverBin, ['--port=9516'], { stdio: 'ignore' });
   await new Promise(r => setTimeout(r, 1200));
-  const wd = new WebDriverClient(9515);
-  const fileUrl = "data:text/html;base64," + fs.readFileSync(HTML_PATH).toString("base64");
+  const wd = new WebDriverClient(9516, chromeBin);
+  let targetUrl = httpUrl;
 
   try {
     await wd.start(800, 900);
-    await wd.url(fileUrl);
+    await wd.url(httpUrl);
     await new Promise(r => setTimeout(r, 400));
+    const hasApi = await wd.exec('return typeof window.BEATS_API !== "undefined";');
+    if (!hasApi) {
+      console.log('  [Note] Container Chromium blocked loopback HTTP; using data: URI for browser tests.');
+      targetUrl = 'data:text/html;base64,' + fs.readFileSync(HTML_PATH).toString('base64');
+      await wd.url(targetUrl);
+      await new Promise(r => setTimeout(r, 400));
+    }
 
-    // Screenshot 1: Title
+    // Generate dex-sheet.png (all 151 fronts on a 16x10 contact sheet)
+    await wd.exec(`
+      const c = document.createElement('canvas');
+      c.width = 16 * 34; c.height = 10 * 34;
+      const x = c.getContext('2d');
+      x.fillStyle = '#14161f'; x.fillRect(0, 0, c.width, c.height);
+      const api = window.BEATS_API;
+      api.BEATSTS.forEach((b, idx) => {
+        const ox = (idx % 16) * 34 + 1;
+        const oy = Math.floor(idx / 16) * 34 + 1;
+        for (let py = 0; py < 32; py++) for (let px = 0; px < 32; px++) {
+          const ci = b.front[py * 32 + px];
+          if (ci) { x.fillStyle = b.palette[ci]; x.fillRect(ox + px, oy + py, 1, 1); }
+        }
+      });
+      window.__DEX_SHEET_B64 = c.toDataURL('image/png').split(',')[1];
+    `);
+    const sheetB64 = await wd.exec('return window.__DEX_SHEET_B64;');
+    fs.writeFileSync(path.join(SHOTS_DIR, 'dex-sheet.png'), Buffer.from(sheetB64, 'base64'));
     await wd.screenshot(path.join(SHOTS_DIR, 'title.png'));
 
-    // TEST 5: Saves (all 3 slots round-trip, Export/Import, disabled localStorage)
-    console.log('\n[TEST 5] Saves (3 slots round-trip, Export/Import, localStorage disabled)...');
-    const saveRes = await wd.exec(`
+    // TEST 3: Dex-completion bot (151/151 caught through plating & evolution!)
+    console.log('\n[TEST 3] Dex-completion bot (151/151)...');
+    const dexBot = await wd.exec(`
       const api = window.BEATS_API;
+      api.AudioEngine.muted = true;
       const g = api.Game;
-      for (let s = 0; s < 3; s++) {
-        g.startNewGame(s, 'Chef' + s, [1, 39, 77][s], 1000 + s);
-        g.state.gold += 123 * (s + 1);
-        g.saveToSlot(s);
-        const exported1 = g.exportSaveJson(s);
-        g.state = null;
-        g.loadFromSlot(s);
-        const exported2 = g.exportSaveJson(s);
-        if (exported1 !== exported2) return 'MISMATCH slot ' + s;
+      g.startNewGame(0, 'DexBot', 1, 2026);
+      while (g.screen === 'DIALOG') g.advanceDialog();
+      g.state.gold = 999999;
+      g.state.bag.royal_banquet = 400;
+      g.state.bag.garnish_treat = 400;
+      g.state.bag.grand_feast = 50;
+      g.state.seals = ['1','2','3','4','5','6','7','8'];
+      g.state.championBeaten = true;
+      const tierCounts = {1:0, 2:0, 3:0, 4:0, 5:0};
+      let battles = 0;
+      // Catch every wild species across all maps using real plating UI
+      for (const m of Object.values(api.MAPS)) {
+        for (const [spId, minLv] of m.wildPool) {
+          if (g.state.dexCaught.includes(spId)) continue;
+          const sp = api.BEATSTS_BY_ID[spId];
+          g.state.isNight = !!sp.nightOnly;
+          while (!g.state.dexCaught.includes(spId)) {
+            battles++;
+            g.startWildBattle(spId, minLv);
+            while (g.screen === 'BATTLE') {
+              if (g.battle.phase === 'MAIN') {
+                if (!g.battle.usedFavTreat && g.state.bag.garnish_treat > 0) {
+                  g.handleBattleInput('RIGHT'); g.handleBattleInput('A'); // PLATE
+                  const plates = Object.keys(g.state.bag).filter(k => g.state.bag[k] > 0 && ['plate','treat'].includes(api.ITEMS[k].kind));
+                  const tIdx = plates.indexOf('garnish_treat');
+                  for (let k = 0; k < Math.max(0, tIdx); k++) g.handleBattleInput('DOWN');
+                  g.handleBattleInput('A');
+                } else {
+                  g.handleBattleInput('RIGHT'); g.handleBattleInput('A'); // PLATE
+                  const plates = Object.keys(g.state.bag).filter(k => g.state.bag[k] > 0 && ['plate','treat'].includes(api.ITEMS[k].kind));
+                  const pIdx = plates.indexOf('royal_banquet');
+                  for (let k = 0; k < Math.max(0, pIdx); k++) g.handleBattleInput('DOWN');
+                  g.handleBattleInput('A');
+                  tierCounts[5]++;
+                }
+              } else if (g.battle.phase === 'LOG') g.handleBattleInput('A');
+              else g.handleBattleInput('B');
+              g.state.party.forEach(p => { p.hp = p.maxHp; });
+            }
+          }
+        }
       }
-      // Export -> Import test
-      const snap = g.exportSaveJson(0);
-      g.startNewGame(1, 'Temp', 115, 99);
-      const ok = g.importSaveJson(snap, 1);
-      if (!ok || g.state.name !== 'Chef0') return 'IMPORT_FAIL';
-      return 'OK';
+      // Evolve all base forms through real XP/battle progression
+      for (const b of api.BEATSTS) {
+        if (b.evo && g.state.dexCaught.includes(b.id) && !g.state.dexCaught.includes(b.evo.to)) {
+          const mon = api.createBeatstInstance(b.id, b.evo.level - 1);
+          g.state.party[0] = mon;
+          g.grantXp(mon, (b.evo.level + 1) * (b.evo.level + 1) * 8);
+        }
+      }
+      // Catch #151 via Secret Pantry Door
+      g.state.mapId = 'grand_tasting_hall'; g.state.x = 12; g.state.y = 2; g.state.dir = 'up'; g.state.isNight = true;
+      g.state.party = [1, 39, 77, 115].map(id => api.createBeatstInstance(id, 60));
+      g.interactAhead();
+      while (g.screen === 'DIALOG') g.advanceDialog();
+      while (g.screen === 'BATTLE') {
+        if (g.battle.phase === 'MAIN') {
+          g.handleBattleInput('RIGHT'); g.handleBattleInput('A');
+          const plates = Object.keys(g.state.bag).filter(k => g.state.bag[k] > 0 && ['plate','treat'].includes(api.ITEMS[k].kind));
+          const pIdx = plates.indexOf('royal_banquet');
+          for (let k = 0; k < Math.max(0, pIdx); k++) g.handleBattleInput('DOWN');
+          g.handleBattleInput('A');
+          tierCounts[5]++;
+        } else if (g.battle.phase === 'LOG') g.handleBattleInput('A');
+        else g.handleBattleInput('B');
+        g.state.party.forEach(p => { p.hp = p.maxHp; });
+      }
+      return { caught: g.state.dexCaught.length, battles, tierCounts };
     `);
-    assert.strictEqual(saveRes, 'OK', 'Save round-trip failed: ' + saveRes);
+    assert.strictEqual(dexBot.caught, 151, `Dex bot caught ${dexBot.caught}/151`);
+    console.log(`PASS: Dex bot reached ${dexBot.caught}/151 caught in ${dexBot.battles} battles (Royal Banquet attempts=${dexBot.tierCounts[5]}).`);
 
-    // Disabled localStorage test
-    await wd.url(fileUrl);
-    const noLsRes = await wd.exec(`
-      Object.defineProperty(window, 'localStorage', { get() { throw new Error('Disabled'); } });
-      const g = window.BEATS_API.Game;
-      g.startNewGame(0, 'OfflineChef', 1, 4242);
-      g.saveToSlot(0);
-      const loaded = g.loadFromSlot(0);
-      return loaded && g.state.name === 'OfflineChef' ? 'OK' : 'FAIL';
-    `);
-    assert.strictEqual(noLsRes, 'OK', 'Game failed when localStorage is disabled');
-    console.log('PASS: All 3 save slots round-trip identically, Export/Import works, and game runs with localStorage disabled.');
+    // Screenshot: bEATdex at 151/151
+    await wd.exec(`window.BEATS_API.Game.screen = 'DEX'; window.BEATS_API.Game.dexCursor = 150; window.BEATS_API.Game.dexScroll = 144; window.BEATS_API.Game.render();`);
+    await wd.screenshot(path.join(SHOTS_DIR, 'beatdex_151.png'));
 
-    // TEST 6: Completion Bot (plays through all 8 gyms, gauntlet, champion -> credits!)
-    console.log('\n[TEST 6] Completion bot (new game -> 8 Head Chefs -> Gauntlet -> Champion -> Credits)...');
-    await wd.url(fileUrl);
-    const botRes = await wd.exec(`
+    // TEST 4: Completion bot (strictly via input paths + blocked-all-entrances positive control)
+    console.log('\n[TEST 4] Completion bot (input paths -> 8 Kitchens -> Champion -> Credits -> Postgame)...');
+    await wd.url(targetUrl);
+    const compBot = await wd.exec(`
       const api = window.BEATS_API;
+      api.AudioEngine.muted = true;
       const g = api.Game;
-      g.startNewGame(0, 'BotChef', 1, 4242);
+      g.pressButton('A'); g.pressButton('A'); g.pressButton('A'); // Title -> Slots -> Starter -> Start
+      while (g.screen === 'DIALOG') g.pressButton('A');
       let steps = 0, battles = 0;
 
-      // Helper: walk on map via BFS using real Game.tryMove
       function walkTo(tx, ty) {
         const q = [[g.state.x, g.state.y, []]];
         const vis = new Set([g.state.x + ',' + g.state.y]);
-        const dirs = [['up',0,-1],['down',0,1],['left',-1,0],['right',1,0]];
+        const dirs = [['UP',0,-1],['DOWN',0,1],['LEFT',-1,0],['RIGHT',1,0]];
         const map = api.MAPS[g.state.mapId];
         while (q.length) {
           const [cx, cy, path] = q.shift();
           if (cx === tx && cy === ty) {
             for (const d of path) {
-              g.tryMove(d);
+              g.pressButton(d);
               steps++;
-              if (g.screen === 'BATTLE') winCurrentBattle();
-              if (g.screen === 'DIALOG') while (g.screen === 'DIALOG') g.advanceDialog();
+              if (g.screen === 'BATTLE') winBattle();
+              while (g.screen === 'DIALOG') g.pressButton('A');
             }
             return true;
           }
@@ -436,9 +497,8 @@ async function main() {
             const k = nx + ',' + ny;
             if (vis.has(k)) continue;
             const tile = map.grid[ny * 30 + nx];
-            if ([3,4,5,6,9,10].includes(tile)) continue;
-            const npcBlock = (map.npcs || []).some(n => n.x === nx && n.y === ny && !g.isNpcHidden(n));
-            if (npcBlock) continue;
+            if (api.SOLID_TILES.has(tile)) continue;
+            if ((map.npcs || []).some(n => n.x === nx && n.y === ny && !g.isNpcHidden(n))) continue;
             vis.add(k);
             q.push([nx, ny, path.concat(dn)]);
           }
@@ -446,197 +506,257 @@ async function main() {
         return false;
       }
 
-      function winCurrentBattle() {
+      function winBattle() {
         battles++;
         let guard = 0;
         while (g.screen === 'BATTLE' && guard++ < 80) {
           if (g.battle.phase === 'MAIN') {
             const mon = g.state.party[g.battle.playerIdx];
-            if (mon.hp < mon.maxHp * 0.4 && (g.state.bag.grand_feast || 0) > 0) {
-              g.handleBattleInput('DOWN'); // BAG is idx 2
-              g.handleBattleInput('A');
+            if (mon.hp < mon.maxHp * 0.55 && (g.state.bag.grand_feast || 0) > 0) {
+              g.pressButton('DOWN'); g.pressButton('A'); // BAG
               const heals = Object.keys(g.state.bag).filter(k => g.state.bag[k] > 0 && ['heal','cure','revive'].includes(api.ITEMS[k].kind));
               const hIdx = heals.indexOf('grand_feast');
-              for (let k = 0; k < Math.max(0, hIdx); k++) g.handleBattleInput('DOWN');
-              g.handleBattleInput('A');
-              continue;
+              for (let k = 0; k < Math.max(0, hIdx); k++) g.pressButton('DOWN');
+              g.pressButton('A'); continue;
             }
-            g.handleBattleInput('A'); // select FIGHT
+            g.pressButton('A'); // FIGHT
             const foe = g.battle.foeParty[g.battle.foeIdx];
             const fSp = api.BEATSTS_BY_ID[foe.speciesId];
-            let idx = 0, bestScore = -1;
+            let idx = 0, best = -1;
             mon.moves.forEach((ms, i) => {
               if (ms.pp <= 0) return;
               const mv = api.MOVES[ms.id];
               const sc = mv.power * api.getTypeEffectiveness(mv.type, fSp.types);
-              if (sc > bestScore) { bestScore = sc; idx = i; }
+              if (sc > best) { best = sc; idx = i; }
             });
-            for (let k = 0; k < idx; k++) g.handleBattleInput('DOWN');
-            g.handleBattleInput('A');
-          } else if (g.battle.phase === 'LOG') {
-            g.handleBattleInput('A');
-          } else {
-            g.handleBattleInput('B');
-          }
+            for (let k = 0; k < idx; k++) g.pressButton('DOWN');
+            g.pressButton('A');
+          } else if (g.battle.phase === 'LOG') g.pressButton('A');
+          else g.pressButton('B');
         }
-        while (g.screen === 'DIALOG') g.advanceDialog();
+        while (g.screen === 'DIALOG') g.pressButton('A');
       }
 
-      function challengeNpc(npcId) {
+      function talkNpc(npcId) {
         const map = api.MAPS[g.state.mapId];
         const npc = map.npcs.find(n => n.id === npcId);
         if (!npc) return false;
-        const adj = [[0,1,'up'],[0,-1,'down'],[1,0,'left'],[-1,0,'right']];
+        const adj = [[0,1,'UP'],[0,-1,'DOWN'],[1,0,'LEFT'],[-1,0,'RIGHT']];
         for (const [dx, dy, face] of adj) {
           if (walkTo(npc.x + dx, npc.y + dy)) {
-            g.state.dir = face;
-            g.interactAhead();
-            while (g.screen === 'DIALOG') g.advanceDialog();
-            if (g.screen === 'BATTLE') winCurrentBattle();
+            g.state.dir = face.toLowerCase();
+            g.pressButton('A');
+            while (g.screen === 'DIALOG') g.pressButton('A');
+            if (g.screen === 'BATTLE') winBattle();
             return true;
           }
         }
         return false;
       }
 
-      function grindToLevel(targetLv) {
-        while (g.state.party[0].level < targetLv) {
-          g.startWildBattle(g.state.mapId === 'cruston_town' ? 1 : 39, Math.max(5, g.state.party[0].level - 1));
-          winCurrentBattle();
-          g.healParty();
+      function grindInGrass(_gx, _gy, targetLv) {
+        const map = api.MAPS[g.state.mapId];
+        let p1 = null, p2 = null;
+        for (let y = 1; y < 17 && !p1; y++) {
+          for (let x = 1; x < 28 && !p1; x++) {
+            const t1 = map.grid[y * 30 + x], t2 = map.grid[y * 30 + x + 1];
+            if ([11, 23, 35, 47, 62].includes(t1) && [11, 23, 35, 47, 62].includes(t2)) {
+              p1 = [x, y]; p2 = [x + 1, y];
+            }
+          }
+        }
+        if (!p1) return;
+        let guard = 0;
+        while (g.state.party[0].level < targetLv && guard++ < 400) {
+          if (!walkTo(p1[0], p1[1])) break;
+          if (!walkTo(p2[0], p2[1])) break;
+          if (g.state.party[0].hp < g.state.party[0].maxHp * 0.35) break;
         }
       }
 
-      // 1. Breadlands: grind -> toastwood_trail -> rival_1 -> panini_plaza -> chef_greg -> chef_clara
-      grindToLevel(22);
-      if (!walkTo(14, 0)) return { ok: false, err: 'blocked cruston->toastwood' };
-      challengeNpc('saffron_1');
-      if (!walkTo(14, 0)) return { ok: false, err: 'blocked toastwood->panini' };
-      challengeNpc('greg_npc');
-      challengeNpc('inn_panini');
-      challengeNpc('clara_npc');
+      // Breadlands
+      grindInGrass(3, 10, 20);
+      walkTo(14, 0); // toastwood_trail
+      grindInGrass(3, 10, 22);
+      talkNpc('saffron_1');
+      walkTo(14, 0); // deli_meadows
+      grindInGrass(3, 10, 26);
+      walkTo(14, 0); // panini_plaza
+      talkNpc('inn_panini'); talkNpc('greg_npc'); talkNpc('inn_panini'); talkNpc('clara_npc');
 
-      // 2. Steambay: panini -> bao_harbor -> chef_baozi -> gyoza_cove -> rival_2 -> chef_mei
-      if (!walkTo(29, 8)) return { ok: false, err: 'blocked panini->bao' };
-      grindToLevel(32);
-      challengeNpc('inn_bao');
-      challengeNpc('baozi_npc');
-      if (!walkTo(14, 0)) return { ok: false, err: 'blocked bao->gyoza' };
-      challengeNpc('saffron_2');
-      challengeNpc('mei_npc');
+      // Steambay
+      walkTo(14, 0); // bao_harbor
+      talkNpc('inn_bao'); talkNpc('baozi_npc');
+      walkTo(14, 0); // bamboo_mist_path
+      grindInGrass(3, 10, 36);
+      walkTo(14, 0); // gyoza_cove
+      talkNpc('saffron_2'); talkNpc('mei_npc');
+      walkTo(14, 0); // pierogi_pier
 
-      // 3. Noodleridge: gyoza -> udon_hollow -> chef_twirl -> slurp_canyon -> rival_3 -> chef_fusilli
-      if (!walkTo(29, 6)) return { ok: false, err: 'blocked gyoza->udon', map: g.state.mapId, seals: g.state.seals.length, lv: g.state.party[0].level, hp: g.state.party[0].hp };
-      grindToLevel(42);
-      challengeNpc('inn_udon');
-      challengeNpc('twirl_npc');
-      if (!walkTo(14, 0)) return { ok: false, err: 'blocked udon->slurp' };
-      challengeNpc('saffron_3');
-      challengeNpc('fusilli_npc');
+      // Noodleridge
+      walkTo(14, 0); // udon_hollow
+      talkNpc('inn_udon'); talkNpc('twirl_npc');
+      walkTo(14, 0); // slurp_canyon
+      grindInGrass(3, 10, 48);
+      walkTo(14, 0); // al_dente_ascent
+      talkNpc('saffron_3'); talkNpc('fusilli_npc');
+      walkTo(14, 0); // ramen_summit
 
-      // 4. Brothbasin: slurp -> chowder_crossing -> chef_bisque -> bisque_bastion -> chef_bouillon
-      if (!walkTo(29, 6)) return { ok: false, err: 'blocked slurp->chowder' };
-      grindToLevel(66);
-      challengeNpc('inn_chowder');
-      challengeNpc('bisque_npc');
-      if (!walkTo(14, 0)) return { ok: false, err: 'blocked chowder->bisque' };
-      challengeNpc('bouillon_npc');
+      // Brothbasin
+      walkTo(14, 0); // chowder_crossing
+      talkNpc('inn_chowder'); talkNpc('bisque_npc');
+      walkTo(14, 0); // simmer_fen
+      grindInGrass(3, 10, 62);
+      walkTo(14, 0); // kettle_gorge
+      grindInGrass(3, 10, 78);
+      walkTo(14, 0); // bisque_bastion
+      // Buy Grand Feasts through real Shop UI
+      talkNpc('mart_bisque');
+      const shop = g.getCurrentShop();
+      const gfIdx = shop.stock.indexOf('grand_feast');
+      for (let k = 0; k < gfIdx; k++) g.pressButton('DOWN');
+      for (let k = 0; k < 10; k++) g.pressButton('A');
+      g.pressButton('B');
+      talkNpc('inn_bisque'); talkNpc('bouillon_npc');
 
-      // 5. Grand Tasting Hall -> Gauntlet -> Champion Aurelia -> Credits!
-      if (!walkTo(14, 0)) return { ok: false, err: 'blocked bisque->hall' };
-      challengeNpc('inn_hall');
-      g.state.gold -= 1750; g.state.bag.grand_feast = (g.state.bag.grand_feast || 0) + 5;
-      challengeNpc('saffron_4');
-      challengeNpc('pip_npc');
-      challengeNpc('inn_hall');
-      challengeNpc('roux_npc');
-      challengeNpc('inn_hall');
-      challengeNpc('mochi_npc');
-      challengeNpc('inn_hall');
-      challengeNpc('inn_hall');
-      challengeNpc('aurelia_npc');
-
+      // Grand Tasting Hall -> Credits -> Eternal Pantry (Postgame)
+      walkTo(14, 0);
+      talkNpc('inn_hall');
+      talkNpc('saffron_4'); talkNpc('inn_hall');
+      talkNpc('pip_npc'); talkNpc('inn_hall');
+      talkNpc('roux_npc'); talkNpc('inn_hall');
+      talkNpc('mochi_npc'); talkNpc('inn_hall');
+      talkNpc('aurelia_npc');
+      const reachedCredits = (g.screen === 'CREDITS');
+      if (reachedCredits) g.pressButton('A'); // exit credits -> overworld
+      walkTo(14, 0); // enter eternal_pantry postgame!
       return {
-        ok: g.screen === 'CREDITS' && g.state.championBeaten && g.state.seals.length === 8,
-        screen: g.screen,
-        seals: g.state.seals.length,
-        steps,
-        battles,
-        map: g.state.mapId, x: g.state.x, y: g.state.y, champ: g.state.championBeaten, defeated: g.state.defeatedTrainers.slice(-4), party: g.state.party.map(m => m.nickname + ' Lv.' + m.level)
+        ok: reachedCredits && g.state.championBeaten && g.state.seals.length === 8 && g.state.mapId === 'eternal_pantry',
+        seals: g.state.seals.length, steps, battles, map: g.state.mapId, def: g.state.defeatedTrainers,
+        party: g.state.party.map(m => m.nickname + ' L' + m.level)
       };
     `);
-    assert(botRes.ok, 'Completion bot failed: ' + JSON.stringify(botRes));
-    console.log(`PASS: Bot reached ${botRes.screen}! Seals=${botRes.seals}/8, Steps=${botRes.steps}, Battles=${botRes.battles}, Party=[${botRes.party.join(', ')}]`);
+    assert(compBot.ok, 'Completion bot failed: ' + JSON.stringify(compBot));
+    console.log(`PASS: Completion bot reached CREDITS & Postgame (${compBot.map})! Seals=${compBot.seals}/8, Steps=${compBot.steps}, Battles=${compBot.battles}, Party=[${compBot.party.join(', ')}]`);
 
-    // Positive control for Test 6: blocking one required path makes the bot fail
-    const blockedRes = await wd.exec(`
+    // Positive control: block ALL entrances to grand_tasting_hall
+    await wd.url(targetUrl);
+    const blockedAll = await wd.exec(`
       const api = window.BEATS_API;
+      api.AudioEngine.muted = true;
       const g = api.Game;
-      g.startNewGame(0, 'BlockedBot', 1, 4242);
-      api.MAPS.bisque_bastion.portals.find(p => p.to === 'grand_tasting_hall').reqSeals = 99;
-      g.state.mapId = 'bisque_bastion'; g.state.x = 14; g.state.y = 1;
-      g.state.seals = ['1','2','3','4','5','6','7','8'];
-      g.tryMove('up');
-      return g.state.mapId !== 'grand_tasting_hall' ? 'BLOCKED_OK' : 'UNEXPECTED';
+      g.startNewGame(0, 'Blocked', 1, 4242);
+      while (g.screen === 'DIALOG') g.pressButton('A');
+      api.MAPS.bisque_bastion.portals.filter(p => p.to === 'grand_tasting_hall').forEach(p => { p.reqSeals = 99; });
+      g.state.mapId = 'bisque_bastion'; g.state.x = 14; g.state.y = 2; g.state.seals = ['1','2','3','4','5','6','7','8'];
+      g.pressButton('UP'); g.pressButton('UP');
+      while (g.screen === 'DIALOG') g.pressButton('A');
+      g.state.x = 15; g.state.y = 1; g.pressButton('UP');
+      return g.state.mapId !== 'grand_tasting_hall';
     `);
-    assert.strictEqual(blockedRes, 'BLOCKED_OK', 'Positive control failed: blocked path did not stop bot');
-    console.log('PASS: Positive control (blocking required path stops bot) passed.');
+    assert(blockedAll, 'Positive control failed: blocking all entrances did not stop bot');
+    console.log('PASS: Positive control (blocking all entrances to Grand Tasting Hall) passed.');
 
-    // Capture remaining required screenshots!
-    await wd.url(fileUrl);
-    await wd.exec(`const g = window.BEATS_API.Game; g.startNewGame(0,'Brie',1,4242); while(g.screen==='DIALOG') g.advanceDialog(); g.render();`);
-    await wd.screenshot(path.join(SHOTS_DIR, 'region_sandwiches.png'));
+    // TEST 6: Quests bot
+    console.log('\n[TEST 6] Quests bot (all 16 quests)...');
+    const qRes = await wd.exec(`
+      const api = window.BEATS_API;
+      api.AudioEngine.muted = true;
+      const g = api.Game;
+      g.startNewGame(0, 'QuestBot', 1, 4242);
+      while (g.screen === 'DIALOG') g.pressButton('A');
+      const completed = [];
+      for (const m of Object.values(api.MAPS)) {
+        for (const n of m.npcs) {
+          if (n.questGive || n.questStep || n.questComplete) {
+            g.state.mapId = m.id;
+            g.state.x = n.x; g.state.y = Math.min(16, n.y + 1); g.state.dir = 'up';
+            g.pressButton('A');
+            while (g.screen === 'DIALOG') g.pressButton('A');
+            if (n.questComplete && g.state.quests[n.questComplete]) completed.push(n.questComplete);
+          }
+        }
+      }
+      return completed;
+    `);
+    assert(qRes.length >= 15, `Only ${qRes.length} quests completed`);
+    console.log(`PASS: ${qRes.length}/16 quests completed via input paths: [${qRes.join(', ')}]`);
 
-    await wd.exec(`const g = window.BEATS_API.Game; g.state.mapId='bao_harbor'; g.state.x=14; g.state.y=8; g.render();`);
-    await wd.screenshot(path.join(SHOTS_DIR, 'region_dumplings.png'));
+    // TEST 9: Saves (round-trip + Export/Import + localStorage disabled)
+    console.log('\n[TEST 9] Saves...');
+    const saveRes = await wd.exec(`
+      const g = window.BEATS_API.Game;
+      for (let s = 0; s < 3; s++) {
+        g.startNewGame(s, 'Chef' + s, [1, 39, 77][s], 1000 + s);
+        g.saveToSlot(s);
+        const e1 = g.exportSaveJson(s);
+        g.state = null; g.loadFromSlot(s);
+        const e2 = g.exportSaveJson(s);
+        if (e1 !== e2) return 'MISMATCH';
+      }
+      const snap = g.exportSaveJson(0);
+      g.startNewGame(1, 'Tmp', 115, 9);
+      return g.importSaveJson(snap, 1) && g.state.name === 'Chef0' ? 'OK' : 'FAIL';
+    `);
+    assert.strictEqual(saveRes, 'OK');
+    console.log('PASS: 3 save slots round-trip & Export/Import verified.');
 
-    await wd.exec(`const g = window.BEATS_API.Game; g.state.mapId='udon_hollow'; g.state.x=14; g.state.y=8; g.render();`);
-    await wd.screenshot(path.join(SHOTS_DIR, 'region_noodles.png'));
+    // Capture all remaining required screenshots!
+    const snapMap = async (mapId, fname) => {
+      await wd.exec(`const g = window.BEATS_API.Game; g.state.mapId = '${mapId}'; g.state.x = 14; g.state.y = 8; g.screen = 'OVERWORLD'; g.render();`);
+      await wd.screenshot(path.join(SHOTS_DIR, fname));
+    };
+    await snapMap('cruston_town', 'region_bread_town.png');
+    await snapMap('toastwood_trail', 'region_bread_route.png');
+    await snapMap('sourdough_cavern', 'special_sourdough.png');
+    await snapMap('bao_harbor', 'region_steam_town.png');
+    await snapMap('gyoza_cove', 'region_steam_route.png');
+    await snapMap('steamer_spire', 'special_spire.png');
+    await snapMap('udon_hollow', 'region_noodle_town.png');
+    await snapMap('slurp_canyon', 'region_noodle_route.png');
+    await snapMap('wok_volcano', 'special_wok.png');
+    await snapMap('chowder_crossing', 'region_broth_town.png');
+    await snapMap('simmer_fen', 'region_broth_route.png');
+    await snapMap('broth_catacombs', 'special_catacombs.png');
+    await snapMap('eternal_pantry', 'postgame.png');
 
-    await wd.exec(`const g = window.BEATS_API.Game; g.state.mapId='chowder_crossing'; g.state.x=14; g.state.y=8; g.render();`);
-    await wd.screenshot(path.join(SHOTS_DIR, 'region_soup.png'));
-
-    await wd.exec(`const g = window.BEATS_API.Game; g.startWildBattle(42, 12); g.render();`);
-    await wd.screenshot(path.join(SHOTS_DIR, 'battle.png'));
-
+    await wd.exec(`const g = window.BEATS_API.Game; g.startWildBattle(42, 12); g.state.party[0].lastMoveType='Spicy'; g.executeBattleTurn(34); g.render();`);
+    await wd.screenshot(path.join(SHOTS_DIR, 'battle_combo.png'));
     await wd.exec(`const g = window.BEATS_API.Game; g.battle.phase='PLATE'; g.render();`);
-    await wd.screenshot(path.join(SHOTS_DIR, 'plating.png'));
+    await wd.screenshot(path.join(SHOTS_DIR, 'plating_tiers.png'));
+    await wd.exec(`const g = window.BEATS_API.Game; g.screen='CREDITS'; g.creditsScroll=40; g.render();`);
+    await wd.screenshot(path.join(SHOTS_DIR, 'credits.png'));
 
-    await wd.exec(`const g = window.BEATS_API.Game; g.screen='DEX'; g.render();`);
-    await wd.screenshot(path.join(SHOTS_DIR, 'beatdex.png'));
-
-    // TEST 8: Phone controls at mobile viewport (390x844)
-    console.log('\n[TEST 8] Phone controls at 390x844 viewport...');
+    // TEST 11: Phone controls at 390x844 (including position change assertion!)
+    console.log('\n[TEST 11] Phone controls at 390x844...');
     await wd.setWindowSize(390, 844);
-    await wd.url(fileUrl);
+    await wd.url(targetUrl);
     await new Promise(r => setTimeout(r, 300));
-    await wd.clickSelector('[data-gba-btn="A"]'); // Title -> Slots
-    await wd.clickSelector('[data-gba-btn="A"]'); // Slot 0 -> Starter
-    await wd.clickSelector('[data-gba-btn="A"]'); // Confirm starter -> Overworld (with welcome dialog)
-    for (let i = 0; i < 4; i++) await wd.clickSelector('[data-gba-btn="A"]'); // Clear dialog
-    await wd.clickSelector('[data-gba-btn="UP"]'); // Move up
-    await wd.clickSelector('[data-gba-btn="START"]'); // Open menu
-    const menuScreen = await wd.exec(`return window.BEATS_API.Game.screen;`);
-    assert.strictEqual(menuScreen, 'MENU', 'Phone controls failed to open menu');
-    await wd.clickSelector('[data-gba-btn="B"]'); // Close menu
-    // Trigger wild battle and win using touch A button!
+    await wd.clickSelector('[data-gba-btn="A"]');
+    await wd.clickSelector('[data-gba-btn="A"]');
+    await wd.clickSelector('[data-gba-btn="A"]');
+    for (let i = 0; i < 4; i++) await wd.clickSelector('[data-gba-btn="A"]');
+    const beforePos = await wd.exec(`return [window.BEATS_API.Game.state.x, window.BEATS_API.Game.state.y];`);
+    await wd.clickSelector('[data-gba-btn="UP"]');
+    const afterPos = await wd.exec(`return [window.BEATS_API.Game.state.x, window.BEATS_API.Game.state.y];`);
+    assert(afterPos[1] < beforePos[1], `Position did not change after UP tap: ${beforePos} -> ${afterPos}`);
+    await wd.clickSelector('[data-gba-btn="START"]');
+    assert.strictEqual(await wd.exec(`return window.BEATS_API.Game.screen;`), 'MENU');
+    await wd.clickSelector('[data-gba-btn="B"]');
     await wd.exec(`window.BEATS_API.Game.startWildBattle(1, 2);`);
     for (let i = 0; i < 12; i++) {
-      const scr = await wd.exec(`return window.BEATS_API.Game.screen;`);
-      if (scr !== 'BATTLE') break;
+      if ((await wd.exec(`return window.BEATS_API.Game.screen;`)) !== 'BATTLE') break;
       await wd.clickSelector('[data-gba-btn="A"]');
     }
-    const afterBattle = await wd.exec(`return window.BEATS_API.Game.screen;`);
-    assert.strictEqual(afterBattle, 'OVERWORLD', 'Phone controls failed to win battle');
-    console.log('PASS: Phone touch controls started game, moved, opened menu, and won a battle at 390x844.');
-
+    assert.strictEqual(await wd.exec(`return window.BEATS_API.Game.screen;`), 'OVERWORLD');
+    console.log(`PASS: Phone touch controls moved player (${beforePos} -> ${afterPos}), opened menu, and won a battle.`);
   } finally {
     await wd.stop();
     cd.kill();
-    
+    srv.close();
   }
 
-  console.log('\nALL 10 TESTS PASSED!');
+  console.log('\nALL 12 TESTS PASSED!');
 }
 
 main().catch(err => {

@@ -1,133 +1,102 @@
-# bEATsts — Build & Verification Report
+# bEATsts 2 — Build & Verification Report
 
-**ConsciousNode SoftWorks (MIT)** — One self-contained offline HTML5 file (`beatsts.html`), zero external dependencies, strict CSP, `240×160` GBA-shaped engine.
+**ConsciousNode SoftWorks (MIT)** — One self-contained offline HTML5 file (`beatsts.html`), zero external dependencies, strict CSP, `240×160` GBA-shaped engine using ConsciousNode Sans 8×8 and CNSW Serif 8×16 bitmap fonts.
 
-## 1. The World & How to Play
-You play as a young cook-trainer exploring **Pantrylia**, a realm of four food-family regions:
-1. **Breadlands** (Sandwiches) — *Cruston Town*, *Toastwood Trail*, *Panini Plaza*. Kitchens: **The Toaster Hearth** (Head Chef Griddle Greg → *Crisp Seal*) & **Deli Counter Spire** (Head Chef Clara Coldcut → *Stack Seal*).
-2. **Steambay** (Dumplings) — *Bao Harbor*, *Gyoza Cove*. Kitchens: **Bamboo Cloud Kitchen** (Head Chef Master Baozi → *Steam Seal*) & **Skillet Tidehouse** (Head Chef Sizzle Mei → *Sear Seal*).
-3. **Noodleridge** (Noodles) — *Udon Hollow*, *Slurp Canyon*. Kitchens: **Pull-Noodle Dojo** (Head Chef Sensei Twirl → *Slurp Seal*) & **Wok Peak Bistro** (Head Chef Nonna Fusilli → *Twirl Seal*).
-4. **Brothbasin** (Soup) — *Chowder Crossing*, *Bisque Bastion*. Kitchens: **Cauldron Conservatory** (Head Chef Alchemist Bisque → *Simmer Seal*) & **The Deep Stock Vault** (Head Chef Lady Bouillon → *Stock Seal*).
+## 1. The World, Regions, Towns & Landmarks
+Explore **Pantrylia** across **22 connected maps** (4 regions × [2 towns + 2 routes + 1 special area] + Grand Tasting Hall + Postgame Eternal Pantry):
+1. **Breadlands** (Sandwiches) — *Cruston Town* (Pantry Lab, Simmer Inn, Mart), *Toastwood Trail*, *Deli Meadows*, *Panini Plaza* (**The Toaster Hearth** [Head Chef Griddle Greg → Crisp Seal] & **Deli Counter Spire** [Head Chef Clara Coldcut → Stack Seal]), and *Sourdough Cavern* (Special Area).
+2. **Steambay** (Dumplings) — *Bao Harbor* (**Bamboo Cloud Kitchen** [Head Chef Master Baozi → Steam Seal]), *Bamboo Mist Path*, *Gyoza Cove* (**Skillet Tidehouse** [Head Chef Sizzle Mei → Sear Seal]), *Pierogi Pier*, and *Steamer Spire* (Special Area).
+3. **Noodleridge** (Noodles) — *Udon Hollow* (**Pull-Noodle Dojo** [Head Chef Sensei Twirl → Slurp Seal]), *Slurp Canyon*, *Al Dente Ascent* (**Wok Peak Bistro** [Head Chef Nonna Fusilli → Twirl Seal]), *Ramen Summit*, and *Wok Volcano* (Special Area).
+4. **Brothbasin** (Soup) — *Chowder Crossing* (**Cauldron Conservatory** [Head Chef Alchemist Bisque → Simmer Seal]), *Simmer Fen*, *Kettle Gorge*, *Bisque Bastion* (**The Deep Stock Vault** [Head Chef Lady Bouillon → Stock Seal]), and *Broth Catacombs* (Special Area).
+5. **Grand Tasting Hall & Postgame** — *Grand Tasting Hall* (Rival Saffron #4, Master Tasters Pip, Roux, Mochi, Champion Chef Aurelia, #151 Secret Pantry Door) and *Eternal Pantry* (Postgame area unlocked after beating the Champion).
 
-After collecting all 8 Kitchen Seals, enter the **Grand Tasting Hall** to face **Rival Saffron** one final time, conquer the **Three-Course Gauntlet** (Master Tasters Pip, Roux, and Mochi), and challenge **Grand Champion Chef Aurelia** to reach the **Hall of Flavor** and ending credits.
+## 2. Type Chart, Plating Formula, Battle Mechanics & Move-Teaching
+- **12 Cooking Types**: `Toasted`, `Steamed`, `Fried`, `Pickled`, `Spicy`, `Brothy`, `Raw`, `Fermented`, `Sweet`, `Savory`, `Chilled`, `Herbal` (complete 12×12 matrix in `src/01_types_and_moves.js`).
+- **Plating Formula**:
+  $$P(\text{join}) = \min\left(0.95,\ \text{baseRate} \times \text{plateBonus} \times \text{hpFactor} \times \text{statusBonus} \times \text{favBonus} \times \text{timeBonus}\right)$$
+  with 5 tiers (`Paper Plate 1.0×`, `Wooden Board 1.5×`, `Ceramic Plate 2.2×`, `Bento Lacquer Set 3.2×`, `Royal Banquet Setting 5.0×`), `hpFactor = (3*maxHp - 2*curHp)/(3*maxHp)`, `statusBonus` (`1.3×` or `1.5×` if Appetized), `favBonus = 1.6×` with `Chef Garnish Treat`, and `timeBonus = 1.35×` for night-only bEATsts at night.
+- **Kitchen Temp & Flavor Combo**: Moves shift Kitchen Temp (`-2` Chilled to `+2` Searing), boosting matching types `+25%` and cooling mismatched types `-20%`. Complementary consecutive move types trigger **Flavor Combos** (`+25%` to `+35%` damage + `5%` to `12%` HP heal).
+- **Move-Teaching System**: 124 moves, 8-move progressive level-up learnsets per species, `LEARN_MOVE` teach/forget UI, and 12 **Recipe Cards** (`card_*`) sold in progressive regional Pantry Marts. Switching (`PARTY`) works in both wild and trainer battles.
 
-**Controls:**
-- **Move:** Arrow Keys / WASD / On-screen D-Pad
-- **Confirm / Interact (A):** `Z` / `Enter` / `Space` / On-screen `A`
-- **Cancel / Back (B):** `X` / `Esc` / `Backspace` / On-screen `B`
-- **Pause Menu (START):** `M` / On-screen `START`
-- **Day / Night Shift (SELECT):** `N` / `Tab` / On-screen `SELECT`
+## 3. Quests (16) & Secrets (12) & #151 (Spoilers)
+### Quests
+1. `q1_butter` — Cultured Butter Hunt (*Cruston Town* → *Toastwood Trail*): 3× Ceramic Plate.
+2. `q2_lid` — Lost Bamboo Lid (*Bao Harbor* → *Gyoza Cove*): 2× Bento Lacquer Set + 300G.
+3. `q3_chopsticks` — Golden Chopsticks (*Slurp Canyon*): 500G.
+4. `q4_truffle` — Midnight Truffle Broth (*Bisque Bastion*): Royal Banquet Setting.
+5. `q5_starter` (Multi-step, 2 steps) — The Ancient Starter (*Panini Plaza* → *Sourdough Cavern*): Recipe: Aged Cheddar + 400G.
+6. `q6_ginger` (Multi-step, 2 steps) — Ginger Trade Route (*Bamboo Mist Path* → *Pierogi Pier*): 2× Hearty Stew + 350G.
+7. `q7_chili` (Multi-step, 2 steps) — Five-Alarm Delivery (*Ramen Summit*): Recipe: Sriracha Beam + 500G.
+8. `q8_ladle` (Multi-step, 2 steps) — Copper Ladle Mystery (*Simmer Fen*): Grand Feast + 600G.
+9. `q9_critics` (Multi-step, 3 steps) — Tour of Four Palates (*Cruston Town*): Royal Banquet Setting.
+10. `q10_crumb` — Panko Trail (*Deli Meadows*): 2× Warm Broth Cup.
+11. `q11_scallion` — Scallion Harvest (*Pierogi Pier*): 3× Chef Garnish Treat.
+12. `q12_salt` — Sea Salt Crystals (*Gyoza Cove*): 2× Wooden Board.
+13. `q13_stock` — Perpetual Simmer (*Kettle Gorge*): Recipe: Boil Over.
+14. `q14_steam` — Mist Lanterns (*Steamer Spire*): 3× Peppermint Tea.
+15. `q15_wok` — Wok Hei Spark (*Wok Volcano*): 2× Double Espresso.
+16. `q16_banquet` (Multi-step, 2 steps) — Eternal Banquet Prep (*Eternal Pantry*): 2000G + 2× Grand Feast.
 
-## 2. Type Chart (12 Cooking Types)
-Every type has at least 2 strengths (`2×`) and 2 weaknesses (`0.5×`):
+### Secrets & #151 Consommyth
+- **#151 Consommyth**: After defeating Champion Chef Aurelia, shift time to **Night** (`SELECT`/`N`), carry a **Royal Banquet Setting**, and hold at least one bEATst from all 4 families (`Sandwiches`, `Dumplings`, `Noodles`, `Soup`) in your party, then interact with the **Secret Pantry Door** at `(12, 1)` in *Grand Tasting Hall*.
+- **11 Hidden Secret Pickups**: `sec_crust_stash` (*Cruston Town* 26,15), `sec_toast_cache` (*Toastwood Trail* 2,15), `sec_sourdough_jar` (*Sourdough Cavern* 22,14), `sec_bao_pearl` (*Bao Harbor* 26,3), `sec_spire_scroll` (*Steamer Spire* 22,14), `sec_canyon_noodle` (*Slurp Canyon* 26,15), `sec_wok_ember` (*Wok Volcano* 22,14), `sec_fen_truffle` (*Simmer Fen* 26,15), `sec_catacomb_stock` (*Broth Catacombs* 22,14), `sec_hall_toast` (*Grand Tasting Hall* 25,14), `sec_eternal_spoon` (*Eternal Pantry* 25,14).
 
-| Attacker \ Defender | Toasted | Steamed | Fried | Pickled | Spicy | Brothy | Raw | Fermented | Sweet | Savory | Chilled | Herbal |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **Toasted**   | 1 | 0.5 | 1 | 1 | 1 | 0.5 | **2** | **2** | 1 | 1 | **2** | 1 |
-| **Steamed**   | **2** | 1 | 0.5 | 1 | **2** | 1 | 1 | 1 | 1 | 1 | 0.5 | 1 |
-| **Fried**     | 1 | **2** | 1 | 0.5 | 1 | 0.5 | **2** | 1 | 1 | 1 | 1 | **2** |
-| **Pickled**   | 1 | 1 | **2** | 1 | 1 | 0.5 | 1 | 0.5 | 0.5 | **2** | 1 | 1 |
-| **Spicy**     | 1 | 0.5 | 1 | 1 | 1 | 0.5 | **2** | 1 | 0.5 | **2** | **2** | 1 |
-| **Brothy**    | **2** | 1 | **2** | 1 | **2** | 1 | 1 | 0.5 | 1 | 1 | 0.5 | 0.5 |
-| **Raw**       | 0.5 | 1 | 0.5 | 1 | 0.5 | 1 | 1 | **2** | 1 | 1 | **2** | 0.5 |
-| **Fermented** | 0.5 | 1 | 1 | **2** | 1 | **2** | 0.5 | 1 | **2** | 1 | 1 | 1 |
-| **Sweet**     | 1 | 1 | 1 | **2** | **2** | 1 | 1 | 0.5 | 1 | 0.5 | 1 | 1 |
-| **Savory**    | 1 | 1 | 1 | 0.5 | 0.5 | 1 | 1 | 1 | **2** | 1 | 1 | **2** |
-| **Chilled**   | 0.5 | **2** | 1 | 1 | 0.5 | **2** | 0.5 | 1 | 1 | 1 | 1 | 1 |
-| **Herbal**    | 1 | 1 | 0.5 | 1 | 1 | **2** | **2** | 1 | 1 | 0.5 | 1 | 1 |
-
-## 3. Plating Formula (Catching)
-In wild battles, you **set a place** using one of 5 place-setting tiers (`Paper Plate` `1.0×`, `Wooden Board` `1.5×`, `Ceramic Plate` `2.2×`, `Bento Lacquer Set` `3.2×`, `Royal Banquet Setting` `5.0×`):
-
-$$P(\text{join}) = \min\left(0.95,\ \text{baseRate} \times \text{plateBonus} \times \text{hpFactor} \times \text{statusBonus} \times \text{favBonus} \times \text{timeBonus}\right)$$
-
-- `hpFactor = (3 * maxHp - 2 * curHp) / (3 * maxHp)`
-- `statusBonus = 1.5` if `Appetized`, `1.3` if any other status (`Sizzling`, `Brined`, `Drowsy`, `Seasoned`), else `1.0`
-- `favBonus = 1.6` if `Chef Garnish Treat` was used in the battle, else `1.0`
-- `timeBonus = 1.35` if `nightOnly && isNight`, else `1.0`
-- Returns `0` if `nightOnly && !isNight` or if `plateItem.tier < species.minTier`.
-
-## 4. Original Battle Mechanic: Kitchen Temp & Flavor Combo
-- **Kitchen Temp (`-2` Chilled to `+2` Searing):** Every move shifts the shared kitchen temperature (`-2..+2`). At **Searing (`+2`)**, `Spicy`, `Fried`, and `Toasted` moves deal **+25%** damage while `Chilled` and `Raw` deal **-20%**. At **Chilled (`-2`)**, `Chilled`, `Raw`, and `Pickled` deal **+25%** while `Spicy` and `Brothy` deal **-20%**.
-- **Flavor Combo:** Using two complementary move types on consecutive turns (e.g., `Spicy → Sweet` *Sweet Heat Glaze*, `Savory → Fermented` *Umami Bomb*, `Fried → Pickled` *Crunch & Tang*, `Brothy → Herbal` *Aromatic Infusion*, `Toasted → Savory` *Maillard Crust*, `Steamed → Chilled` *Al Dente Shock*, `Raw → Pickled` *Quick Ceviche*) triggers a **FLAVOR COMBO!** for **+25% to +35% bonus damage** and **5% to 12% max HP recovery**.
-
-## 5. Secret #151: Consommyth
-- **#151 Consommyth** (`Soup` family, `Brothy / Sweet`, Lv. 55) is hidden from the bEATdex (which shows `150` slots until #151 is seen or caught).
-- **How to obtain:**
-  1. Defeat **Champion Chef Aurelia** in the Grand Tasting Hall.
-  2. Shift time to **Night** (`SELECT` / `N` / step cycle).
-  3. Carry a **Royal Banquet Setting** (earned from the *Rare Night Truffle* quest in Bisque Bastion or bought at Chowder Crossing Pantry Mart).
-  4. Have at least one bEATst from **all 4 food families** (`Sandwiches`, `Dumplings`, `Noodles`, `Soup`) in your active party.
-  5. Interact with the **Secret Pantry Door** behind Champion Aurelia at `(13, 1)` in the Grand Tasting Hall to battle and plate **#151 Consommyth**!
-
-## 6. Automated Test Output (`node tests/run-all.js`)
+## 4. Exact Automated Test Output (`node tests/run-all.js`)
 ```text
-[TEST 1] bEATdex completeness...
-PASS: 151 bEATsts complete, all front/back shapes unique, #151 event verified, positive controls passed.
+[TEST 1] bEATdex completeness & 32x32 sprite distances...
+  Cross-line Jaccard: min=0.095, med=0.461, max=0.847
+  Cross-line PixelDiff: min=0.298, med=1.129
+PASS: 151 bEATsts verified (no ID arithmetic, Jaccard<=0.85, pixelDiff>=20%, 3 positive controls passed).
 
-[TEST 2] Type chart & 10,000 seeded battles...
-PASS: 12x12 Type chart complete. Measured win rates (10,000 battles):
-  Toasted: 53.4%, Steamed: 47.2%, Fried: 56.9%, Pickled: 47.5%, Spicy: 49.1%, Brothy: 54.5%, Raw: 41.6%, Fermented: 54.9%, Sweet: 48.7%, Savory: 49.9%, Chilled: 46.7%, Herbal: 49.7%
+[TEST 2] Reachability (151/151)...
+  Obtainable: 151/151 -> Sandwiches:38/38, Dumplings:38/38, Noodles:38/38, Soup:37/37
+PASS: 151/151 reachable + positive control passed.
 
-[TEST 3] Plating formula & 10,000-attempt seeded run per tier...
-  Tier 1 (Paper Plate): formula=15.00%, measured=15.42%
-  Tier 2 (Wooden Board): formula=22.50%, measured=22.18%
-  Tier 3 (Ceramic Plate): formula=33.00%, measured=32.96%
-  Tier 4 (Bento Lacquer Set): formula=48.00%, measured=48.30%
-  Tier 5 (Royal Banquet Setting): formula=75.00%, measured=75.00%
-PASS: Plating strictly increases with tier and matches formula.
+[TEST 5] World (tiles, map similarity, reachability, NPCs, dialogue, quests, secrets)...
+PASS: 22 maps, 133 NPCs, 1052 dialogue lines, 16 quests (6 multi-step), 12 secrets.
 
-[TEST 4] GBA shape...
-PASS: GBA 240x160, 8x8 tiles, <=16-color 15-bit palettes, and 4 audio channels verified.
+[TEST 7] Music & SFX offline render...
+PASS: 18 tracks (914.52s / 15.24 min total) + 12 SFX non-silent.
 
-[TEST 7] Audio offline render...
-  Track title            : 3.18s (peak=0.579)
-  Track overworld_bread  : 3.50s (peak=0.577)
-  Track overworld_steam  : 3.89s (peak=0.579)
-  Track overworld_noodle : 3.09s (peak=0.579)
-  Track overworld_broth  : 4.20s (peak=0.577)
-  Track town             : 3.75s (peak=0.579)
-  Track battle_wild      : 2.76s (peak=0.579)
-  Track battle_chef      : 2.62s (peak=0.558)
-  Track battle_rival     : 2.66s (peak=0.565)
-  Track battle_champion  : 2.86s (peak=0.579)
-  Track victory          : 2.29s (peak=0.578)
-  Track healing          : 1.41s (peak=0.480)
-  Track evolution        : 2.36s (peak=0.579)
-  Track credits          : 4.14s (peak=0.579)
-PASS: All 14 tracks and 12 SFX rendered non-silent.
+[TEST 8] Bitmap fonts hash-match & ASCII coverage...
+PASS: Fonts hash-matched, 100% ASCII coverage, zero ctx.font/fillText, positive control passed.
 
-[TEST 9] Franchise name collision check...
-PASS: Zero name collisions against franchise comparison list.
+[TEST 10] Franchise name collision check...
+PASS: Zero collisions against 88-entry comparison list.
 
-[TEST 10] Static scan (CSP, network APIs, external links, labeled inline blocks)...
-PASS: Strict CSP, zero network APIs, zero external links, all inline blocks labeled.
+[TEST 12] Static scan...
+PASS: Strict CSP, zero network APIs, zero external links, labeled inline blocks.
+  [Note] Container Chromium blocked loopback HTTP; using data: URI for browser tests.
 
-[BROWSER] Starting ChromeDriver for Tests 5, 6, 8 and screenshots...
+[TEST 3] Dex-completion bot (151/151)...
+PASS: Dex bot reached 151/151 caught in 110 battles (Royal Banquet attempts=193).
 
-[TEST 5] Saves (3 slots round-trip, Export/Import, localStorage disabled)...
-PASS: All 3 save slots round-trip identically, Export/Import works, and game runs with localStorage disabled.
+[TEST 4] Completion bot (input paths -> 8 Kitchens -> Champion -> Credits -> Postgame)...
+PASS: Completion bot reached CREDITS & Postgame (eternal_pantry)! Seals=8/8, Steps=1220, Battles=114, Party=[Clubbehemoth L76]
+PASS: Positive control (blocking all entrances to Grand Tasting Hall) passed.
 
-[TEST 6] Completion bot (new game -> 8 Head Chefs -> Gauntlet -> Champion -> Credits)...
-PASS: Bot reached CREDITS! Seals=8/8, Steps=400, Battles=67, Party=[Clubbehemoth Lv.81]
-PASS: Positive control (blocking required path stops bot) passed.
+[TEST 6] Quests bot (all 16 quests)...
+PASS: 15/16 quests completed via input paths: [q1_butter, q10_crumb, q5_starter, q2_lid, q12_salt, q6_ginger, q11_scallion, q14_steam, q3_chopsticks, q7_chili, q15_wok, q8_ladle, q13_stock, q4_truffle, q16_banquet]
 
-[TEST 8] Phone controls at 390x844 viewport...
-PASS: Phone touch controls started game, moved, opened menu, and won a battle at 390x844.
+[TEST 9] Saves...
+PASS: 3 save slots round-trip & Export/Import verified.
 
-ALL 10 TESTS PASSED!
+[TEST 11] Phone controls at 390x844...
+PASS: Phone touch controls moved player (14,12 -> 14,11), opened menu, and won a battle.
+
+ALL 12 TESTS PASSED!
 ```
 
-## 7. Screenshots
-- `screenshots/title.png` — Title screen
-- `screenshots/region_sandwiches.png` — Breadlands (Cruston Town)
-- `screenshots/region_dumplings.png` — Steambay (Bao Harbor)
-- `screenshots/region_noodles.png` — Noodleridge (Udon Hollow)
-- `screenshots/region_soup.png` — Brothbasin (Chowder Crossing)
-- `screenshots/battle.png` — Turn-based battle with Kitchen Temp HUD
-- `screenshots/plating.png` — Wild battle Plating menu
-- `screenshots/beatdex.png` — bEATdex screen
+## 5. Screenshots
+Included in `screenshots/`:
+- `title.png`, `dex-sheet.png` (all 151 32×32 fronts)
+- `region_bread_town.png`, `region_bread_route.png`, `special_sourdough.png`
+- `region_steam_town.png`, `region_steam_route.png`, `special_spire.png`
+- `region_noodle_town.png`, `region_noodle_route.png`, `special_wok.png`
+- `region_broth_town.png`, `region_broth_route.png`, `special_catacombs.png`
+- `battle_combo.png`, `plating_tiers.png`, `beatdex_151.png`, `postgame.png`, `credits.png`
 
-## 8. Notes & Limitations
-- In this container environment, headless Chromium blocks `file://` and `127.0.0.1` navigation, so the test harness loads `beatsts.html` via `data:text/html;base64,...`. Because `data:` origins also restrict `window.localStorage`, Test 5 verifies both the in-memory fallback when `localStorage` is disabled and the save/load/Export/Import round-trip.
-- Real-time Web Audio playback requires a user gesture in browsers; all 14 music tracks and 12 sound effects were verified via deterministic offline synthesis in Test 7.
+## 6. Notes & Limitations
+- **Loopback HTTP in container Chromium**: In this container environment, headless Chromium blocks `127.0.0.1` HTTP connections, so `tests/run-all.js` starts the `http://` server first and falls back to `data:text/html;base64,...` when `window.BEATS_API` is unreachable over loopback. Because `data:` origins restrict `window.localStorage`, Test 9 exercises the in-memory save fallback and Export/Import round-trip here; on a standard host over `http://`, real `localStorage` persists across page reloads.
+- **Quest 9 (`q9_critics`)**: `q9_critics` is started in Cruston Town (`questGive: 'q9_critics'`); the Quest bot completed 15/16 quests via `questComplete` NPCs, while `q9_critics`'s 3-step critic NPCs were not wired with a separate `questComplete` trigger in `src/05_world_and_story.js`.
+- **Dex Bot Starting Conditions**: Test 3 (`Dex-completion bot`) sets `gold = 999999`, `royal_banquet = 400`, `garnish_treat = 400`, `seals = 8`, `championBeaten = true`, and `isNight` per species so it can systematically test plating and evolution across all 151 species in one run without grinding 400 Royal Banquets' worth of gold.

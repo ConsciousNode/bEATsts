@@ -1,4 +1,5 @@
-// 04_items_and_plating.js - Items, Place-Setting Tiers, and Exact Plating Formula
+// 04_items_and_plating.js - Items, 5 Place-Setting Tiers, 12 Recipe Cards, Progressive Regional Shops, & Plating Formula
+// PROVENANCE: Core ITEMS and calcPlatingChance lifted from beatsts-v1/src/04_items_and_plating.js; extended with Recipe Cards and progressive REGIONAL_SHOPS.
 
 const ITEMS = {
   paper_plate: {
@@ -44,23 +45,46 @@ const ITEMS = {
   garnish_treat: {
     id: 'garnish_treat', name: 'Chef Garnish Treat', kind: 'treat', price: 100,
     desc: 'Sprinkled in wild battles to delight a bEATst (+60% plating chance!).'
+  },
+  // 12 Move-Teaching Recipe Cards (one per type)
+  card_toasted:   { id: 'card_toasted',   name: 'Recipe: Hearth Toast',   kind: 'recipe', moveId: 4,   price: 600, desc: 'Teaches Hearth Toast (Toasted, 95 PWR).' },
+  card_steamed:   { id: 'card_steamed',   name: 'Recipe: Geyser Vent',    kind: 'recipe', moveId: 8,   price: 600, desc: 'Teaches Geyser Vent (Steamed, 90 PWR).' },
+  card_fried:     { id: 'card_fried',     name: 'Recipe: Deep-Fry Surge', kind: 'recipe', moveId: 12,  price: 650, desc: 'Teaches Deep-Fry Surge (Fried, 95 PWR).' },
+  card_pickled:   { id: 'card_pickled',   name: 'Recipe: Kraut Storm',    kind: 'recipe', moveId: 72,  price: 650, desc: 'Teaches Kraut Storm (Pickled, 95 PWR).' },
+  card_spicy:     { id: 'card_spicy',     name: 'Recipe: Sriracha Beam',  kind: 'recipe', moveId: 76,  price: 600, desc: 'Teaches Sriracha Beam (Spicy, 80 PWR).' },
+  card_brothy:    { id: 'card_brothy',    name: 'Recipe: Boil Over',      kind: 'recipe', moveId: 24,  price: 650, desc: 'Teaches Boil Over (Brothy, 90 PWR).' },
+  card_raw:       { id: 'card_raw',       name: 'Recipe: Tartare Strike', kind: 'recipe', moveId: 90,  price: 650, desc: 'Teaches Tartare Strike (Raw, 95 PWR).' },
+  card_fermented: { id: 'card_fermented', name: 'Recipe: Aged Cheddar',   kind: 'recipe', moveId: 97,  price: 650, desc: 'Teaches Aged Cheddar (Fermented, 95 PWR).' },
+  card_sweet:     { id: 'card_sweet',     name: 'Recipe: Brulee Torch',   kind: 'recipe', moveId: 102, price: 650, desc: 'Teaches Brulee Torch (Sweet, 95 PWR).' },
+  card_savory:    { id: 'card_savory',    name: 'Recipe: Demi-Glace',     kind: 'recipe', moveId: 109, price: 700, desc: 'Teaches Demi-Glace (Savory, 105 PWR).' },
+  card_chilled:   { id: 'card_chilled',   name: 'Recipe: Cryo Broth',     kind: 'recipe', moveId: 114, price: 650, desc: 'Teaches Cryo Broth (Chilled, 95 PWR).' },
+  card_herbal:    { id: 'card_herbal',    name: 'Recipe: Bouquet Garni',  kind: 'recipe', moveId: 121, price: 700, desc: 'Teaches Bouquet Garni (Herbal, 100 PWR).' }
+};
+
+// Progressive Pantry Mart inventories by region
+const REGIONAL_SHOPS = {
+  Breadlands: {
+    clerkLine: 'Breadlands Pantry Mart! Fresh Paper Plates, Wooden Boards, and Warm Broth Cups!',
+    stock: ['paper_plate', 'wooden_board', 'broth_cup', 'mint_tea', 'garnish_treat', 'card_toasted', 'card_savory']
+  },
+  Steambay: {
+    clerkLine: 'Steambay Pantry Mart! Ceramic Plates, Hearty Stews, and Steamer Recipes now unlocked!',
+    stock: ['paper_plate', 'wooden_board', 'ceramic_plate', 'broth_cup', 'hearty_stew', 'mint_tea', 'garnish_treat', 'card_steamed', 'card_fried', 'card_pickled']
+  },
+  Noodleridge: {
+    clerkLine: 'Noodleridge Pantry Mart! Bento Lacquer Sets and Double Espresso for mountain climbs!',
+    stock: ['wooden_board', 'ceramic_plate', 'bento_set', 'hearty_stew', 'wakeup_espresso', 'mint_tea', 'garnish_treat', 'card_spicy', 'card_raw', 'card_herbal']
+  },
+  Brothbasin: {
+    clerkLine: 'Brothbasin Pantry Mart! Royal Banquet Settings and Grand Feasts are finally in stock!',
+    stock: ['ceramic_plate', 'bento_set', 'royal_banquet', 'hearty_stew', 'grand_feast', 'wakeup_espresso', 'garnish_treat', 'card_brothy', 'card_fermented', 'card_chilled', 'card_sweet']
+  },
+  Postgame: {
+    clerkLine: 'Eternal Pantry Boutique! Every plate tier and all master Recipe Cards available!',
+    stock: Object.keys(ITEMS)
   }
 };
 
-const SHOP_STOCK = [
-  'paper_plate', 'wooden_board', 'ceramic_plate', 'bento_set', 'royal_banquet',
-  'broth_cup', 'hearty_stew', 'grand_feast', 'mint_tea', 'wakeup_espresso', 'garnish_treat'
-];
-
-// Exact Plating Probability Formula:
-// P(join) = min(0.95, baseRate * plateBonus * hpFactor * statusBonus * favBonus * timeBonus)
-// where:
-//   hpFactor    = (3 * maxHp - 2 * curHp) / (3 * maxHp)   [0.333 at full HP -> ~1.0 at 1 HP]
-//   statusBonus = status === 'Appetized' ? 1.5 : (status ? 1.3 : 1.0)
-//   favBonus    = usedFavTreat ? 1.6 : 1.0
-//   timeBonus   = (species.nightOnly && isNight) ? 1.35 : 1.0
-// Note: if species.minTier && plateItem.tier < species.minTier, returns 0 (needs fancier plate!)
-//       if species.nightOnly && !isNight, returns 0 (only joins at night!)
 function calcPlatingChance(species, curHp, maxHp, status, usedFavTreat, isNight, plateItem) {
   if (!species || !plateItem || plateItem.kind !== 'plate') return 0;
   if (species.nightOnly && !isNight) return 0;
