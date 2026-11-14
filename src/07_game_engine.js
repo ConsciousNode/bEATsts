@@ -765,18 +765,52 @@ const Game = {
       return;
     }
     if (npc.questGive) {
+      if (this.state.quests[npc.questGive]) {
+        this.showDialog(npc.doneLines || ['Thank you again for your help!']);
+        return;
+      }
       this.state.quests[npc.questGive + '_started'] = true;
       this.showDialog(npc.lines);
       return;
     }
     if (npc.questStep) {
-      this.state.quests[npc.questStep + '_step1'] = true;
+      const qid = npc.questStep;
+      const stepIdx = npc.stepIndex || 1;
+      if (!this.state.quests[qid + '_started']) {
+        this.showDialog(npc.notStartedMsg || 'Speak with the quest organizer before checking in here!');
+        return;
+      }
+      for (let s = 1; s < stepIdx; s++) {
+        if (!this.state.quests[qid + '_step' + s]) {
+          this.showDialog(npc.notReadyMsg || 'You have an earlier stop to visit first!');
+          return;
+        }
+      }
+      this.state.quests[qid + '_step' + stepIdx] = true;
       this.showDialog(npc.lines);
       return;
     }
     if (npc.questComplete) {
-      this.state.quests[npc.questComplete] = true;
-      this.grantQuestReward(npc.questComplete);
+      const qid = npc.questComplete;
+      if (this.state.quests[qid]) {
+        this.showDialog(npc.doneLines || ['Already completed!']);
+        return;
+      }
+      const qDef = QUESTS.find(q => q.id === qid);
+      const reqStarted = npc.reqStarted !== undefined ? npc.reqStarted : !!(qDef && qDef.reqStarted);
+      const reqSteps = npc.reqSteps !== undefined ? npc.reqSteps : (qDef ? (qDef.reqSteps || 0) : 0);
+      if (reqStarted && !this.state.quests[qid + '_started']) {
+        this.showDialog(npc.notStartedMsg || "You haven't started this quest yet!");
+        return;
+      }
+      for (let s = 1; s <= reqSteps; s++) {
+        if (!this.state.quests[qid + '_step' + s]) {
+          this.showDialog(npc.notReadyMsg || "You haven't finished all the earlier steps yet!");
+          return;
+        }
+      }
+      this.state.quests[qid] = true;
+      this.grantQuestReward(qid);
       AudioEngine.playSfx('level_up');
       this.showDialog(npc.lines);
       return;

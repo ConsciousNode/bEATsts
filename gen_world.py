@@ -120,300 +120,420 @@ def make_interior(mid, name, region, music, w=20, h=14, floor_t=0, wall_t=15):
 # ==============================================================================
 # Cruston Town (34x22)
 m = reg_map('cruston_town', 'Cruston Town', 'Breadlands', 'town_bread', 34, 22, 10, 14, [[1,3,5],[4,3,5],[26,4,6]])
-m.rect(15, 1, 4, 20, 12) # Main N-S Crust Ave
-m.rect(3, 9, 28, 3, 12)  # Main E-W Bakery Blvd
-m.rect(12, 8, 10, 5, 17) # Central Oven Plaza
-# Buildings with visible doors & clear aprons
-d_lab = m.building(4, 3, 6, 4, 16, 15, 3)    # Pantry Lab
-d_inn = m.building(23, 3, 6, 4, 16, 15, 3)   # Simmer Inn
-d_mart = m.building(4, 13, 6, 4, 16, 15, 3)  # Pantry Mart
-d_cafe = m.building(23, 13, 6, 4, 16, 15, 3) # bEATst Cafe
-m.rect(11, 15, 4, 4, 13) # Scenic Milk Pond (away from doors!)
-m.rect(19, 15, 3, 2, 19) # Buttercup garden
-m.set(13, 13, 64); m.set(20, 13, 64) # Market stalls
-m.rect(2, 18, 8, 1, 18) # Bread fence
-m.add_sign(14, 2, 'North: Toastwood Trail')
+m.rect(14, 1, 5, 20, 12)   # Main N-S Crust Ave (x=14,y=5..12 walkable)
+m.rect(3, 9, 28, 3, 12)    # Main E-W Bakery Blvd
+m.rect(11, 8, 11, 5, 17)   # Central Oven Plaza
+d_lab  = m.building(4, 3, 6, 4, 16, 15, 3)
+d_inn  = m.building(23, 3, 6, 4, 16, 15, 3)
+d_mart = m.building(4, 13, 6, 4, 16, 15, 3)
+d_cafe = m.building(23, 13, 6, 4, 16, 15, 3)
+m.rect(10, 15, 4, 4, 13)
+m.rect(19, 15, 3, 3, 19)
+m.set(13, 13, 64); m.set(20, 13, 64)
+m.rect(2, 18, 7, 2, 18); m.rect(19, 15, 12, 4, 19); m.rect(1, 1, 3, 7, 19); m.rect(1, 12, 3, 5, 19); m.rect(29, 3, 3, 5, 11)
+m.add_sign(13, 2, 'North: Toastwood Trail')
 m.add_sign(10, 7, 'Chef Brotholomew Lab')
 m.add_sign(22, 7, 'Cruston Simmer Inn')
 
 # Cruston Interiors
-mi = make_interior('cruston_lab', 'Pantry Lab', 'Breadlands', 'town_bread', 17, 12, 17, 15)
-mi.rect(3, 2, 12, 2, 5)
+mi = make_interior('cruston_lab', 'Pantry Lab', 'Breadlands', 'town_bread', 17, 12, 20, 15)
+mi.rect(2, 2, 13, 2, 5); mi.rect(2, 6, 3, 4, 18); mi.rect(12, 6, 3, 4, 18)
+mi.rect(6, 5, 5, 5, 10); mi.set(6, 5, 19); mi.set(10, 5, 19)
+
 mi = make_interior('cruston_inn', 'Cruston Simmer Inn', 'Breadlands', 'town_bread', 18, 11, 41, 15)
-mi.rect(6, 2, 6, 2, 1)
-mi = make_interior('cruston_mart', 'Cruston Pantry Mart', 'Breadlands', 'town_bread', 19, 11, 0, 15)
-mi.rect(3, 2, 4, 3, 5); mi.rect(11, 2, 4, 3, 5)
+mi.rect(1, 1, 5, 5, 15); mi.rect(12, 1, 5, 5, 15)
+mi.rect(6, 2, 6, 2, 1); mi.rect(7, 5, 4, 5, 17)
+mi.rect(1, 7, 5, 2, 18); mi.rect(12, 7, 5, 2, 18)
+
+mi = make_interior('cruston_mart', 'Cruston Pantry Mart', 'Breadlands', 'town_bread', 19, 11, 10, 15)
+mi.rect(2, 2, 4, 6, 5); mi.rect(13, 2, 4, 6, 5)
+mi.rect(7, 2, 5, 2, 1); mi.rect(7, 5, 5, 4, 0)
+mi.rect(2, 8, 3, 2, 19); mi.rect(14, 8, 3, 2, 19)
+
 mi = make_interior('cruston_cafe', 'Cruston bEATst Cafe', 'Breadlands', 'town_bread', 18, 13, 29, 15)
-mi.rect(4, 3, 4, 2, 1); mi.rect(11, 3, 4, 2, 17)
+mi.rect(2, 2, 5, 2, 1); mi.rect(11, 2, 5, 2, 1)
+mi.rect(2, 6, 5, 4, 19); mi.rect(11, 6, 5, 4, 19); mi.rect(2, 10, 5, 1, 18); mi.rect(11, 10, 5, 1, 18)
+mi.rect(8, 3, 2, 9, 17)
 
 # Toastwood Trail (32x24)
 m = reg_map('toastwood_trail', 'Toastwood Trail', 'Breadlands', 'overworld_bread', 32, 24, 10, 14, [[1,3,5],[4,3,6],[6,4,7],[10,4,7],[14,5,8],[26,4,7],[25,6,9]])
-m.rect(14, 1, 3, 22, 12)
-m.rect(4, 10, 24, 2, 12)
-m.rect(3, 3, 9, 5, 11)   # Wheat grass NW
-m.rect(20, 3, 9, 5, 11)  # Wheat grass NE
-m.rect(3, 14, 8, 6, 11)  # Wheat grass SW
-m.rect(20, 15, 9, 5, 11) # Wheat grass SE
-m.rect(5, 12, 6, 1, 65)  # South ledge!
-m.rect(22, 12, 6, 1, 19) # Flowers
+m.rect(14, 1, 3, 7, 12); m.rect(7, 6, 10, 2, 12); m.rect(7, 6, 3, 10, 12)
+m.rect(7, 14, 18, 2, 12); m.rect(14, 14, 3, 9, 12)
+m.rect(2, 2, 10, 4, 11); m.rect(19, 2, 10, 6, 11)
+m.rect(2, 17, 10, 5, 11); m.rect(20, 17, 9, 5, 11)
+m.rect(11, 9, 10, 4, 19)
+m.rect(3, 11, 4, 1, 65); m.rect(25, 11, 4, 1, 65)
+m.rect(21, 9, 8, 1, 18)
 m.add_sign(13, 21, 'Toastwood Trail -> Deli Meadows')
 
 # Deli Meadows (36x20)
 m = reg_map('deli_meadows', 'Deli Meadows', 'Breadlands', 'overworld_bread', 36, 20, 10, 14, [[8,5,8],[12,5,8],[16,6,9],[18,6,9],[20,6,9],[22,6,9],[24,7,10]])
-m.rect(16, 1, 3, 18, 12)
-m.rect(2, 8, 32, 3, 12)
-m.rect(4, 2, 10, 5, 11); m.rect(21, 2, 11, 5, 11)
-m.rect(4, 12, 10, 5, 19); m.rect(21, 12, 10, 5, 11)
-m.rect(12, 14, 4, 3, 13) # Milk creek
-m.rect(20, 11, 6, 1, 65) # Ledge
+m.rect(1, 9, 34, 2, 12); m.rect(16, 1, 3, 18, 12)
+m.rect(10, 1, 3, 18, 13); m.rect(10, 9, 3, 2, 17)
+m.rect(2, 2, 7, 6, 11); m.rect(20, 2, 12, 5, 11)
+m.rect(2, 12, 7, 5, 19); m.rect(22, 13, 10, 4, 11); m.rect(14, 13, 5, 4, 19)
+m.rect(14, 4, 2, 4, 18); m.rect(20, 12, 10, 1, 65)
 m.add_sign(15, 17, 'Deli Meadows -> Panini Plaza')
-m.add_sign(3, 7, 'East: Truffle Cellar')
+m.add_sign(32, 8, 'East: Truffle Cellar')
 
-# Panini Plaza (36x22)
-m = reg_map('panini_plaza', 'Panini Plaza', 'Breadlands', 'town_bread', 36, 22, 17, 14, [[28,7,10],[29,7,10],[30,8,11],[31,8,11],[32,8,11]])
-m.rect(16, 1, 4, 20, 12)
+# Panini Plaza (36x24): Paved stone plaza (17) with garden planters (19) & Twin Kitchens
+m = reg_map('panini_plaza', 'Panini Plaza', 'Breadlands', 'town_bread', 36, 24, 17, 14, [[28,7,10],[29,7,10],[30,8,11],[31,8,11],[32,8,11]])
+m.rect(16, 1, 4, 22, 12)
 m.rect(1, 10, 34, 3, 12)
-d_p_inn = m.building(4, 3, 6, 4, 16, 15, 3)
-d_p_mart = m.building(26, 3, 6, 4, 16, 15, 3)
-d_gym1 = m.building(4, 14, 7, 4, 16, 15, 3)  # Toaster Hearth
-d_gym2 = m.building(25, 14, 7, 4, 16, 15, 3) # Deli Counter Spire
-m.set(13, 8, 64); m.set(22, 8, 64)
-m.add_sign(15, 19, 'Panini Plaza: Twin Kitchens!')
+d_gym1   = m.building(4, 3, 7, 4, 16, 15, 3)
+d_gym2   = m.building(25, 3, 7, 4, 16, 15, 3)
+d_p_inn  = m.building(4, 16, 6, 4, 16, 15, 3)
+d_p_mart = m.building(26, 16, 6, 4, 16, 15, 3)
+m.set(13, 8, 64); m.set(22, 8, 64); m.set(13, 15, 64); m.set(22, 15, 64)
+m.rect(11, 16, 4, 5, 19); m.rect(21, 16, 4, 5, 19)
+m.rect(11, 3, 4, 4, 18); m.rect(21, 3, 4, 4, 18)
+m.add_sign(15, 21, 'Panini Plaza: Twin Kitchens!')
 m.add_sign(3, 9, 'West: Sourdough Cavern')
 
-make_interior('panini_inn', 'Panini Simmer Inn', 'Breadlands', 'town_bread', 19, 12, 41, 15).rect(6, 2, 6, 2, 1)
-make_interior('panini_mart', 'Panini Pantry Mart', 'Breadlands', 'town_bread', 20, 11, 0, 15).rect(4, 2, 10, 2, 5)
+mi = make_interior('panini_inn', 'Panini Simmer Inn', 'Breadlands', 'town_bread', 19, 12, 10, 15)
+mi.rect(1, 1, 5, 9, 13); mi.rect(6, 2, 7, 2, 1); mi.rect(14, 2, 4, 7, 19)
+mi.rect(8, 5, 4, 6, 41); mi.rect(4, 5, 3, 2, 17)
 
-# Gym 1 Interior: Toaster Hearth (Conveyor Puzzle)
+mi = make_interior('panini_mart', 'Panini Pantry Mart', 'Breadlands', 'town_bread', 20, 11, 20, 15)
+mi.rect(1, 1, 18, 2, 5); mi.rect(2, 5, 6, 3, 5); mi.rect(12, 5, 6, 3, 5)
+mi.rect(9, 4, 2, 6, 0); mi.rect(8, 3, 4, 1, 1); mi.rect(1, 9, 6, 1, 18); mi.rect(13, 9, 6, 1, 18)
+
+# Gym 1 Interior: Toaster Hearth
 mg1 = make_interior('gym_toaster', 'The Toaster Hearth', 'Breadlands', 'town_bread', 22, 15, 17, 15)
-mg1.rect(4, 10, 5, 1, 67); mg1.rect(13, 7, 5, 1, 68)
-mg1.rect(3, 5, 16, 1, 18); mg1.set(10, 5, 17); mg1.set(11, 5, 17)
+mg1.rect(3, 9, 7, 1, 67); mg1.rect(12, 9, 7, 1, 68)
+mg1.rect(3, 6, 16, 1, 18); mg1.set(10, 6, 17); mg1.set(11, 6, 17)
+mg1.rect(2, 2, 5, 3, 19); mg1.rect(15, 2, 5, 3, 19)
+mg1.rect(1, 11, 5, 3, 18); mg1.rect(16, 11, 5, 3, 18); mg1.rect(7, 2, 8, 2, 19)
 
-# Gym 2 Interior: Deli Counter Spire (Switch & Gate Puzzle)
-mg2 = make_interior('gym_deli', 'Deli Counter Spire', 'Breadlands', 'town_bread', 23, 15, 12, 15)
-mg2.rect(2, 6, 18, 1, 73) # Locked deli gate
-mg2.set(4, 11, 9) # Switch opens gate!
+# Gym 2 Interior: Deli Counter Spire
+mg2 = make_interior('gym_deli', 'Deli Counter Spire', 'Breadlands', 'town_bread', 23, 15, 10, 15)
+mg2.rect(2, 6, 19, 1, 73); mg2.set(4, 11, 9)
+mg2.rect(1, 8, 3, 6, 5); mg2.rect(19, 8, 3, 6, 5)
+mg2.rect(7, 9, 9, 2, 1); mg2.rect(3, 2, 5, 2, 5); mg2.rect(15, 2, 5, 2, 5)
+mg2.rect(1, 2, 2, 4, 18); mg2.rect(20, 2, 2, 4, 18)
 
 # ==============================================================================
 # 2. STEAMBAY
 # ==============================================================================
+# Bao Harbor (36x22): Harbor with southern bay water & 3 docks
 m = reg_map('bao_harbor', 'Bao Harbor', 'Steambay', 'town_steam', 36, 22, 22, 26, [[39,12,16],[42,13,17],[46,14,18],[48,14,18]])
+m.rect(1, 13, 34, 8, 25); m.rect(10, 3, 3, 5, 25); m.rect(23, 3, 3, 5, 25)
+m.rect(6, 13, 3, 7, 31)
 m.rect(16, 1, 4, 20, 24)
-m.rect(3, 10, 30, 3, 31)
-d_b_inn = m.building(4, 3, 6, 4, 28, 27, 3)
-d_b_mart = m.building(26, 3, 6, 4, 28, 27, 3)
-d_gym3 = m.building(14, 3, 8, 4, 28, 27, 4) # Bamboo Cloud Kitchen Pagoda
-m.rect(3, 15, 10, 5, 25) # Harbor water
-m.rect(23, 15, 10, 5, 25)
-m.set(14, 14, 30); m.set(21, 14, 30) # Lanterns off path
-m.set(12, 9, 64); m.set(24, 9, 64)
-m.add_sign(15, 19, 'Bao Harbor - Steambay Port')
+m.rect(27, 13, 3, 7, 31)
+m.rect(2, 9, 32, 3, 31)
+d_b_inn  = m.building(3, 3, 6, 4, 28, 27, 3)
+d_gym3   = m.building(14, 3, 8, 4, 28, 27, 4)
+d_b_mart = m.building(27, 3, 6, 4, 28, 27, 3)
+m.set(11, 14, 30); m.set(24, 14, 30); m.set(12, 8, 64); m.set(24, 8, 64)
+m.add_sign(15, 19, 'Bao Harbor - Steambay Docks')
 
-make_interior('bao_inn', 'Bao Simmer Inn', 'Steambay', 'town_steam', 17, 13, 29, 27).rect(6, 2, 6, 2, 1)
-make_interior('bao_mart', 'Bao Pantry Mart', 'Steambay', 'town_steam', 20, 12, 31, 27).rect(4, 2, 10, 2, 5)
+mi = make_interior('bao_inn', 'Bao Simmer Inn', 'Steambay', 'town_steam', 17, 13, 22, 27)
+mi.rect(1, 4, 5, 7, 25); mi.rect(11, 4, 5, 7, 25)
+mi.rect(6, 2, 5, 2, 1); mi.rect(7, 4, 3, 8, 31)
+mi.rect(1, 1, 3, 2, 30); mi.rect(13, 1, 3, 2, 30)
 
-# Gym 3 Interior: Bamboo Cloud Kitchen (Oil-slick sliding floor)
-mg3 = make_interior('gym_bamboo', 'Bamboo Cloud Kitchen', 'Steambay', 'town_steam', 22, 17, 29, 27)
-mg3.rect(5, 6, 12, 4, 66) # Slippery steam-oil floor
-mg3.rect(2, 6, 3, 4, 29); mg3.rect(17, 6, 3, 4, 29)
+mi = make_interior('bao_mart', 'Bao Pantry Mart', 'Steambay', 'town_steam', 20, 12, 24, 27)
+mi.rect(1, 1, 4, 9, 25); mi.rect(15, 1, 4, 9, 25)
+mi.rect(6, 2, 2, 7, 5); mi.rect(12, 2, 2, 7, 5)
+mi.rect(8, 2, 4, 2, 1); mi.rect(9, 4, 2, 7, 29)
 
-m = reg_map('bamboo_mist_path', 'Bamboo Mist Path', 'Steambay', 'overworld_steam', 34, 22, 22, 26, [[50,14,18],[52,15,19],[54,14,18],[56,15,19],[57,16,20]])
-m.rect(15, 1, 3, 20, 29)
-m.rect(5, 9, 24, 2, 24)
-m.rect(3, 2, 10, 5, 23); m.rect(21, 2, 10, 5, 23)
-m.rect(4, 13, 9, 6, 23); m.rect(21, 13, 9, 6, 23)
-m.set(12, 11, 30); m.set(20, 11, 30)
-m.add_sign(14, 19, 'Bamboo Mist Path -> Gyoza Cove')
+# Gym 3 Interior: Bamboo Cloud Kitchen
+mg3 = make_interior('gym_bamboo', 'Bamboo Cloud Kitchen', 'Steambay', 'town_steam', 22, 17, 22, 27)
+mg3.rect(5, 6, 12, 4, 66)
+mg3.rect(1, 4, 3, 8, 26); mg3.rect(18, 4, 3, 8, 26)
+mg3.rect(9, 1, 4, 15, 31); mg3.rect(6, 12, 3, 2, 30); mg3.rect(13, 12, 3, 2, 30)
 
+# Bamboo Mist Path (34x22)
+m = reg_map('bamboo_mist_path', 'Bamboo Mist Path', 'Steambay', 'overworld_steam', 34, 22, 26, 26, [[50,14,18],[52,15,19],[54,14,18],[56,15,19],[57,16,20]])
+m.rect(13, 1, 7, 20, 29)
+m.rect(3, 8, 28, 5, 24)
+m.rect(2, 2, 9, 5, 23); m.rect(23, 2, 9, 5, 23)
+m.rect(2, 14, 9, 6, 23); m.rect(23, 14, 9, 6, 23)
+m.set(12, 12, 30); m.set(21, 12, 30)
+m.add_sign(12, 19, 'Bamboo Mist Path -> Gyoza Cove')
+
+# Gyoza Cove (36x20)
 m = reg_map('gyoza_cove', 'Gyoza Cove', 'Steambay', 'overworld_steam', 36, 20, 31, 26, [[44,17,21],[58,18,22],[59,18,22],[60,18,22],[61,19,23],[62,20,24]])
-m.rect(16, 1, 3, 18, 24)
-m.rect(3, 9, 30, 2, 24)
-m.rect(3, 2, 10, 5, 23); m.rect(3, 12, 10, 5, 25)
-m.rect(22, 12, 10, 5, 23)
-d_gym4 = m.building(23, 2, 7, 4, 28, 27, 3) # Skillet Tidehouse
-m.add_sign(15, 17, 'Gyoza Cove & Skillet Tidehouse')
+m.rect(1, 10, 13, 9, 25); m.rect(29, 11, 6, 8, 25)
+m.rect(15, 1, 4, 18, 24)
+m.rect(14, 9, 20, 2, 24)
+m.rect(2, 2, 11, 6, 23); m.rect(21, 12, 12, 6, 23)
+d_gym4 = m.building(23, 2, 7, 4, 28, 27, 3)
+m.add_sign(14, 17, 'Gyoza Cove & Skillet Tidehouse')
 
-# Gym 4 Interior: Skillet Tidehouse (Conveyor + Switch)
-mg4 = make_interior('gym_skillet', 'Skillet Tidehouse', 'Steambay', 'town_steam', 23, 16, 31, 27)
-mg4.rect(3, 6, 16, 1, 73); mg4.set(17, 11, 9)
-mg4.rect(6, 9, 6, 1, 67)
+# Gym 4 Interior: Skillet Tidehouse
+mg4 = make_interior('gym_skillet', 'Skillet Tidehouse', 'Steambay', 'town_steam', 23, 16, 25, 27)
+mg4.rect(3, 2, 17, 4, 29); mg4.rect(3, 9, 17, 6, 31)
+mg4.rect(10, 6, 3, 4, 31)
+mg4.rect(3, 6, 17, 1, 73); mg4.set(17, 11, 9)
+mg4.rect(5, 10, 7, 1, 67)
 
-m = reg_map('pierogi_pier', 'Pierogi Pier', 'Steambay', 'town_steam', 34, 22, 24, 26, [[63,19,23],[64,20,24],[66,20,24],[67,20,24],[68,20,24],[69,20,24]])
-m.rect(15, 1, 4, 20, 31)
+# Pierogi Pier (34x22): Water-surrounded pier with offset boardwalk (y=13..15)
+m = reg_map('pierogi_pier', 'Pierogi Pier', 'Steambay', 'town_steam', 34, 22, 25, 26, [[63,19,23],[64,20,24],[66,20,24],[67,20,24],[68,20,24],[69,20,24]])
+m.rect(13, 1, 8, 20, 31)
 m.rect(1, 10, 32, 3, 24)
-d_pi_inn = m.building(4, 3, 6, 4, 28, 27, 3)
+m.rect(2, 2, 10, 8, 29); m.rect(22, 2, 10, 8, 29)
+d_pi_inn  = m.building(4, 3, 6, 4, 28, 27, 3)
 d_pi_mart = m.building(24, 3, 6, 4, 28, 27, 3)
-m.rect(4, 15, 9, 4, 25); m.rect(21, 15, 9, 4, 25)
 m.set(13, 8, 64); m.set(20, 8, 64)
+m.rect(3, 15, 8, 4, 29); m.rect(23, 15, 8, 4, 29) # Floating dining decks
+m.rect(11, 16, 2, 2, 31); m.rect(21, 16, 2, 2, 31)
 m.add_sign(3, 9, 'West: Steamer Spire')
 
-make_interior('pierogi_inn', 'Pierogi Simmer Inn', 'Steambay', 'town_steam', 19, 13, 29, 27).rect(6, 2, 6, 2, 1)
-make_interior('pierogi_mart', 'Pierogi Pantry Mart', 'Steambay', 'town_steam', 21, 11, 31, 27).rect(4, 2, 10, 2, 5)
+mi = make_interior('pierogi_inn', 'Pierogi Simmer Inn', 'Steambay', 'town_steam', 19, 13, 29, 27)
+mi.rect(1, 1, 4, 11, 26); mi.rect(14, 1, 4, 11, 26)
+mi.rect(6, 2, 7, 2, 1); mi.rect(6, 6, 7, 3, 25); mi.rect(8, 5, 3, 7, 31)
+
+mi = make_interior('pierogi_mart', 'Pierogi Pantry Mart', 'Steambay', 'town_steam', 21, 11, 26, 27)
+mi.rect(2, 2, 17, 7, 29); mi.rect(2, 2, 5, 2, 5); mi.rect(14, 2, 5, 2, 5)
+mi.rect(8, 2, 5, 2, 1); mi.rect(4, 6, 13, 2, 24); mi.rect(7, 2, 1, 4, 25); mi.rect(13, 2, 1, 4, 25)
 
 # ==============================================================================
 # 3. NOODLERIDGE
 # ==============================================================================
-m = reg_map('udon_hollow', 'Udon Hollow', 'Noodleridge', 'town_noodle', 34, 22, 34, 38, [[77,22,26],[80,23,27],[82,24,28],[84,24,28]])
-m.rect(15, 1, 4, 20, 36)
-m.rect(3, 10, 28, 3, 36)
-d_u_inn = m.building(4, 3, 6, 4, 40, 39, 3)
+# Udon Hollow (34x22): Mountain valley with Chili Lake & offset east-side avenues
+m = reg_map('udon_hollow', 'Udon Hollow', 'Noodleridge', 'town_noodle', 34, 22, 36, 38, [[77,22,26],[80,23,27],[82,24,28],[84,24,28]])
+m.rect(14, 1, 5, 20, 43)
+m.rect(2, 9, 30, 3, 41)
+m.rect(2, 13, 10, 7, 37)  # SW Chili Lake
+m.rect(21, 13, 11, 7, 42) # SE Noodle bamboo garden
+d_u_inn  = m.building(3, 3, 6, 4, 40, 39, 3)
+d_gym5   = m.building(13, 3, 8, 4, 40, 39, 4)
 d_u_mart = m.building(24, 3, 6, 4, 40, 39, 3)
-d_gym5 = m.building(13, 3, 8, 4, 40, 39, 4) # Pull-Noodle Dojo
-m.rect(4, 15, 9, 4, 37) # Chili river corner
-m.set(22, 16, 42); m.set(25, 16, 42)
-m.add_sign(14, 19, 'Udon Hollow - Pull-Noodle Dojo')
+m.add_sign(13, 19, 'Udon Hollow - Pull-Noodle Dojo')
 
-make_interior('udon_inn', 'Udon Simmer Inn', 'Noodleridge', 'town_noodle', 17, 14, 41, 39).rect(6, 2, 6, 2, 1)
-make_interior('udon_mart', 'Udon Pantry Mart', 'Noodleridge', 'town_noodle', 21, 12, 36, 39).rect(4, 2, 10, 2, 5)
+mi = make_interior('udon_inn', 'Udon Simmer Inn', 'Noodleridge', 'town_noodle', 17, 14, 41, 39)
+mi.rect(2, 2, 4, 8, 34); mi.rect(11, 2, 4, 8, 34)
+mi.rect(6, 2, 5, 2, 1); mi.rect(7, 4, 3, 9, 36)
 
-# Gym 5 Interior: Pull-Noodle Dojo (Pushable Dough Block!)
+mi = make_interior('udon_mart', 'Udon Pantry Mart', 'Noodleridge', 'town_noodle', 21, 12, 34, 39)
+mi.rect(1, 1, 6, 9, 5); mi.rect(14, 1, 6, 9, 5)
+mi.rect(8, 2, 5, 2, 1); mi.rect(9, 4, 3, 7, 36)
+
+# Gym 5 Interior: Pull-Noodle Dojo
 mg5 = make_interior('gym_dojo', 'Pull-Noodle Dojo', 'Noodleridge', 'town_noodle', 21, 16, 41, 39)
 mg5.rect(2, 6, 8, 1, 38); mg5.rect(12, 6, 8, 1, 38)
+mg5.rect(4, 10, 13, 3, 36); mg5.rect(2, 2, 3, 3, 42); mg5.rect(16, 2, 3, 3, 42)
+mg5.rect(1, 7, 3, 7, 18); mg5.rect(17, 7, 3, 7, 18)
 
-m = reg_map('slurp_canyon', 'Slurp Canyon', 'Noodleridge', 'overworld_noodle', 36, 22, 34, 38, [[86,25,29],[88,25,29],[90,26,30],[92,26,30],[94,27,31],[95,27,31]])
-m.rect(16, 1, 3, 20, 43) # Rope bridge spine
-m.rect(4, 10, 28, 2, 36)
-m.rect(2, 2, 12, 2, 37); m.rect(21, 2, 12, 2, 37) # Chili rivers
-m.rect(3, 5, 10, 4, 35); m.rect(22, 5, 10, 4, 35)
-m.rect(4, 14, 9, 5, 35); m.rect(22, 14, 9, 5, 35)
-m.add_sign(15, 19, 'Slurp Canyon -> Al Dente Ascent')
+# Slurp Canyon (36x22)
+m = reg_map('slurp_canyon', 'Slurp Canyon', 'Noodleridge', 'overworld_noodle', 36, 22, 38, 38, [[86,25,29],[88,25,29],[90,26,30],[92,26,30],[94,27,31],[95,27,31]])
+m.rect(2, 2, 32, 18, 34)
+m.rect(2, 2, 12, 3, 37); m.rect(22, 2, 12, 3, 37)
+m.rect(15, 1, 5, 20, 43)
+m.rect(3, 10, 30, 2, 36)
+m.rect(4, 7, 9, 1, 65); m.rect(23, 7, 9, 1, 65)
+m.rect(4, 13, 9, 1, 65); m.rect(23, 13, 9, 1, 65)
+m.rect(3, 15, 9, 5, 35); m.rect(24, 15, 9, 5, 35)
+m.add_sign(14, 19, 'Slurp Canyon -> Al Dente Ascent')
 
-m = reg_map('al_dente_ascent', 'Al Dente Ascent', 'Noodleridge', 'overworld_noodle', 34, 22, 36, 38, [[96,28,32],[97,28,32],[98,29,33],[99,29,33],[100,29,33],[101,30,34]])
-m.rect(15, 1, 3, 20, 43)
-m.rect(3, 10, 28, 2, 36)
-m.rect(3, 3, 9, 5, 35); m.rect(3, 13, 9, 6, 35)
-d_gym6 = m.building(22, 3, 7, 4, 40, 39, 3) # Wok Peak Bistro
-m.add_sign(14, 19, 'Al Dente Ascent & Wok Peak Bistro')
+# Al Dente Ascent (34x22)
+m = reg_map('al_dente_ascent', 'Al Dente Ascent', 'Noodleridge', 'overworld_noodle', 34, 22, 38, 38, [[96,28,32],[97,28,32],[98,29,33],[99,29,33],[100,29,33],[101,30,34]])
+m.rect(14, 1, 4, 9, 43); m.rect(6, 8, 22, 3, 36); m.rect(6, 8, 4, 8, 43)
+m.rect(6, 14, 22, 2, 36); m.rect(15, 14, 4, 7, 43)
+m.rect(20, 17, 10, 1, 65); m.rect(19, 13, 12, 4, 34)
+m.rect(2, 2, 11, 17, 35); m.rect(20, 11, 11, 8, 34)
+d_gym6 = m.building(22, 3, 7, 4, 40, 39, 3); m.rect(24, 7, 3, 3, 36)
+m.add_sign(13, 19, 'Al Dente Ascent & Wok Peak Bistro')
 
-# Gym 6 Interior: Wok Peak Bistro (Conveyors + Oil)
-mg6 = make_interior('gym_wokpeak', 'Wok Peak Bistro', 'Noodleridge', 'town_noodle', 24, 15, 36, 39)
-mg6.rect(4, 8, 14, 2, 66)
+# Gym 6 Interior: Wok Peak Bistro
+mg6 = make_interior('gym_wokpeak', 'Wok Peak Bistro', 'Noodleridge', 'town_noodle', 24, 15, 34, 39)
+mg6.rect(4, 7, 16, 3, 66)
+mg6.rect(1, 1, 5, 5, 38); mg6.rect(18, 1, 5, 5, 38)
+mg6.rect(9, 1, 6, 13, 36)
 
-m = reg_map('ramen_summit', 'Ramen Summit', 'Noodleridge', 'town_noodle', 34, 22, 41, 38, [[102,30,34],[103,30,34],[104,31,35],[105,31,35],[106,31,35],[107,32,36]])
-m.rect(15, 1, 4, 20, 36)
+# Ramen Summit (34x24)
+m = reg_map('ramen_summit', 'Ramen Summit', 'Noodleridge', 'town_noodle', 34, 24, 35, 38, [[102,30,34],[103,30,34],[104,31,35],[105,31,35],[106,31,35],[107,32,36]])
+m.rect(14, 1, 5, 22, 36)
 m.rect(1, 10, 32, 3, 36)
-d_r_inn = m.building(4, 3, 6, 4, 40, 39, 3)
+m.rect(3, 15, 7, 5, 37); m.rect(24, 15, 7, 5, 37)
+d_r_inn  = m.building(4, 3, 6, 4, 40, 39, 3)
 d_r_mart = m.building(24, 3, 6, 4, 40, 39, 3)
 m.set(13, 8, 64); m.set(20, 8, 64)
+m.rect(12, 16, 2, 4, 42); m.rect(20, 16, 2, 4, 42)
 m.add_sign(3, 9, 'West: Wok Volcano')
 
-make_interior('ramen_inn', 'Ramen Simmer Inn', 'Noodleridge', 'town_noodle', 19, 14, 41, 39).rect(6, 2, 6, 2, 1)
-make_interior('ramen_mart', 'Ramen Pantry Mart', 'Noodleridge', 'town_noodle', 20, 13, 36, 39).rect(4, 2, 10, 2, 5)
+mi = make_interior('ramen_inn', 'Ramen Simmer Inn', 'Noodleridge', 'town_noodle', 19, 14, 41, 39)
+mi.rect(1, 1, 17, 3, 38); mi.rect(7, 2, 5, 2, 1)
+mi.rect(2, 6, 4, 4, 37); mi.rect(13, 6, 4, 4, 37); mi.rect(5, 10, 9, 2, 34); mi.rect(2, 11, 5, 2, 42); mi.rect(12, 11, 5, 2, 42); mi.rect(1, 4, 3, 2, 35); mi.rect(15, 4, 3, 2, 35); mi.rect(1, 1, 3, 3, 38); mi.rect(15, 1, 3, 3, 38)
+mi.rect(8, 4, 3, 9, 43)
+
+mi = make_interior('ramen_mart', 'Ramen Pantry Mart', 'Noodleridge', 'town_noodle', 20, 13, 34, 39)
+mi.rect(2, 2, 16, 2, 5); mi.rect(8, 4, 4, 2, 1)
+mi.rect(2, 7, 6, 4, 42); mi.rect(12, 7, 6, 4, 42)
 
 # ==============================================================================
 # 4. BROTHBASIN
 # ==============================================================================
+# Chowder Crossing (35x21)
 m = reg_map('chowder_crossing', 'Chowder Crossing', 'Brothbasin', 'town_broth', 35, 21, 46, 50, [[115,32,36],[118,33,37],[120,33,37],[122,34,38]])
-m.rect(15, 1, 4, 20, 48)
-m.rect(3, 10, 28, 3, 48)
-d_c_inn = m.building(4, 3, 6, 4, 52, 51, 3)
+m.rect(1, 9, 33, 3, 49)
+m.rect(15, 1, 4, 19, 48)
+m.rect(6, 9, 3, 3, 48); m.rect(25, 9, 3, 3, 48)
+d_c_inn  = m.building(4, 3, 6, 4, 52, 51, 3)
+d_gym7   = m.building(13, 3, 8, 4, 52, 51, 4)
 d_c_mart = m.building(24, 3, 6, 4, 52, 51, 3)
-d_gym7 = m.building(13, 3, 8, 4, 52, 51, 4) # Cauldron Conservatory
-m.rect(4, 15, 8, 4, 49) # Simmering stock pool
-m.set(24, 15, 53); m.set(26, 15, 53)
-m.add_sign(14, 19, 'Chowder Crossing - Cauldron Conservatory')
+m.rect(4, 14, 8, 4, 54); m.rect(22, 14, 8, 4, 54)
+m.add_sign(14, 18, 'Chowder Crossing - Twin Bridges')
 
-make_interior('chowder_inn', 'Chowder Simmer Inn', 'Brothbasin', 'town_broth', 18, 14, 48, 51).rect(6, 2, 6, 2, 1)
-make_interior('chowder_mart', 'Chowder Pantry Mart', 'Brothbasin', 'town_broth', 21, 13, 48, 51).rect(4, 2, 10, 2, 5)
+mi = make_interior('chowder_inn', 'Chowder Simmer Inn', 'Brothbasin', 'town_broth', 18, 14, 46, 51)
+mi.rect(1, 1, 5, 5, 50); mi.rect(12, 1, 5, 5, 50)
+mi.rect(6, 2, 6, 2, 1); mi.rect(7, 4, 4, 9, 48)
+mi.rect(3, 8, 3, 4, 49); mi.rect(12, 8, 3, 4, 49)
 
-# Gym 7 Interior: Cauldron Conservatory (Dark + Switch)
-mg7 = make_interior('gym_cauldron', 'Cauldron Conservatory', 'Brothbasin', 'town_broth', 23, 17, 48, 51)
-mg7.rect(2, 6, 18, 1, 73); mg7.set(5, 11, 9)
+mi = make_interior('chowder_mart', 'Chowder Pantry Mart', 'Brothbasin', 'town_broth', 21, 13, 56, 51)
+mi.rect(7, 5, 7, 3, 5); mi.rect(8, 2, 5, 2, 1)
+mi.rect(2, 2, 3, 8, 49); mi.rect(16, 2, 3, 8, 49)
+
+# Gym 7 Interior: Cauldron Conservatory
+mg7 = make_interior('gym_cauldron', 'Cauldron Conservatory', 'Brothbasin', 'town_broth', 23, 17, 50, 51)
+mg7.rect(3, 2, 17, 13, 56); mg7.rect(2, 6, 19, 1, 73); mg7.set(5, 11, 9)
+mg7.rect(2, 8, 6, 3, 49); mg7.rect(15, 8, 6, 3, 49)
 MAPS_DATA['gym_cauldron']['dark'] = True
 
-m = reg_map('simmer_fen', 'Simmer Fen', 'Brothbasin', 'overworld_broth', 35, 23, 46, 50, [[124,35,39],[126,35,39],[128,36,40],[130,36,40],[131,37,41],[132,37,41]])
-m.rect(16, 1, 3, 20, 48)
-m.rect(4, 10, 28, 2, 48)
-m.rect(3, 3, 10, 5, 47); m.rect(22, 3, 10, 5, 47)
-m.rect(3, 13, 10, 5, 54); m.rect(22, 13, 10, 5, 47)
-m.set(12, 14, 55); m.set(20, 14, 55)
-m.add_sign(15, 19, 'Simmer Fen -> Kettle Gorge')
+# Simmer Fen (35x23)
+m = reg_map('simmer_fen', 'Simmer Fen', 'Brothbasin', 'overworld_broth', 35, 23, 49, 50, [[124,35,39],[126,35,39],[128,36,40],[130,36,40],[131,37,41],[132,37,41]])
+m.rect(15, 1, 4, 21, 48)
+m.rect(3, 10, 29, 3, 48)
+m.rect(3, 3, 10, 6, 47); m.rect(22, 3, 10, 6, 47)
+m.rect(3, 14, 10, 6, 54); m.rect(22, 14, 10, 6, 47)
+m.set(12, 14, 55); m.set(20, 14, 55); m.rect(10, 8, 5, 2, 48); m.rect(22, 12, 3, 3, 48); m.rect(13, 14, 2, 2, 48)
+m.add_sign(14, 20, 'Simmer Fen -> Kettle Gorge')
 
-m = reg_map('kettle_gorge', 'Kettle Gorge', 'Brothbasin', 'overworld_broth', 34, 22, 48, 50, [[133,38,42],[134,38,42],[135,38,42],[136,39,43],[137,39,43],[138,40,44]])
-m.rect(15, 1, 3, 20, 48)
-m.rect(3, 10, 28, 2, 48)
-m.rect(3, 3, 9, 5, 47); m.rect(21, 3, 9, 5, 47)
-m.rect(3, 14, 9, 5, 49); m.rect(21, 14, 9, 5, 47)
-m.add_sign(14, 19, 'Kettle Gorge -> Bisque Bastion')
+# Kettle Gorge (34x22): Rocky gorge (50) with winding stone causeway & twin geyser pools
+m = reg_map('kettle_gorge', 'Kettle Gorge', 'Brothbasin', 'overworld_broth', 34, 22, 50, 50, [[133,38,42],[134,38,42],[135,38,42],[136,39,43],[137,39,43],[138,40,44]])
+m.rect(14, 1, 4, 8, 48); m.rect(6, 7, 12, 3, 48); m.rect(6, 7, 4, 9, 48)
+m.rect(6, 14, 22, 2, 48); m.rect(15, 14, 4, 7, 48)
+m.rect(20, 2, 10, 6, 47); m.rect(2, 2, 9, 4, 49); m.rect(18, 6, 4, 3, 48); m.rect(15, 11, 3, 3, 48)
+m.rect(2, 17, 9, 3, 47); m.rect(22, 17, 9, 3, 49) # South rim grass & geyser
+m.add_sign(13, 19, 'Kettle Gorge -> Bisque Bastion')
 
-m = reg_map('bisque_bastion', 'Bisque Bastion', 'Brothbasin', 'town_broth', 36, 22, 46, 57, [[139,40,44],[140,40,44],[141,41,45],[142,41,45],[143,41,45],[144,42,46]])
+# Bisque Bastion (36x22): Walled stone bastion with battlements (57), stone courtyard (48) & moat (49)
+m = reg_map('bisque_bastion', 'Bisque Bastion', 'Brothbasin', 'town_broth', 36, 22, 54, 57, [[139,40,44],[140,40,44],[141,41,45],[142,41,45],[143,41,45],[144,42,46]])
+m.rect(10, 7, 16, 8, 56) # Central stone courtyard
 m.rect(16, 1, 4, 20, 48)
 m.rect(1, 10, 34, 3, 48)
-d_bi_inn = m.building(4, 3, 6, 4, 52, 51, 3)
+m.rect(11, 7, 14, 1, 57); m.set(17, 7, 48); m.set(18, 7, 48)
+d_bi_inn  = m.building(4, 3, 6, 4, 52, 51, 3)
 d_bi_mart = m.building(26, 3, 6, 4, 52, 51, 3)
-d_gym8 = m.building(24, 14, 8, 4, 52, 51, 4) # Deep Stock Vault
+d_gym8    = m.building(24, 14, 8, 4, 52, 51, 4)
+m.rect(2, 14, 10, 6, 49); m.rect(2, 14, 2, 6, 57); m.rect(12, 16, 10, 4, 47)
 m.set(13, 8, 64); m.set(22, 8, 64)
 m.add_sign(3, 9, 'West: Broth Catacombs')
 m.add_sign(32, 9, 'East: Chrome Fork HQ')
 
-make_interior('bisque_inn', 'Bisque Simmer Inn', 'Brothbasin', 'town_broth', 20, 14, 48, 51).rect(6, 2, 6, 2, 1)
-make_interior('bisque_mart', 'Bisque Pantry Mart', 'Brothbasin', 'town_broth', 22, 12, 48, 51).rect(4, 2, 10, 2, 5)
+mi = make_interior('bisque_inn', 'Bisque Simmer Inn', 'Brothbasin', 'town_broth', 20, 14, 56, 51)
+mi.rect(3, 4, 14, 8, 53); mi.rect(8, 4, 4, 9, 48); mi.rect(7, 2, 6, 2, 1)
+mi.rect(2, 6, 3, 6, 49); mi.rect(15, 6, 3, 6, 49); mi.rect(5, 6, 2, 5, 57); mi.rect(13, 6, 2, 5, 57)
 
-# Gym 8 Interior: Deep Stock Vault (Switch + Push Block)
-mg8 = make_interior('gym_vault', 'The Deep Stock Vault', 'Brothbasin', 'town_broth', 24, 17, 56, 51)
-mg8.rect(2, 6, 18, 1, 73); mg8.set(17, 11, 9)
+mi = make_interior('bisque_mart', 'Bisque Pantry Mart', 'Brothbasin', 'town_broth', 22, 12, 48, 51)
+mi.rect(2, 2, 5, 4, 5); mi.rect(15, 2, 5, 4, 5); mi.rect(8, 2, 6, 2, 1)
+mi.rect(3, 7, 16, 3, 56); mi.set(10, 5, 53); mi.set(11, 5, 53)
+
+# Gym 8 Interior: Deep Stock Vault
+mg8 = make_interior('gym_vault', 'The Deep Stock Vault', 'Brothbasin', 'town_broth', 24, 17, 57, 51)
+mg8.rect(3, 2, 18, 13, 48); mg8.rect(2, 6, 20, 1, 73); mg8.set(17, 11, 9)
+mg8.rect(2, 8, 3, 6, 57); mg8.rect(19, 8, 3, 6, 57)
 
 # ==============================================================================
-# 5. SIX MULTI-FLOOR DUNGEONS (12 Dungeon Maps!)
+# 5. SIX MULTI-FLOOR DUNGEONS (12 Dungeon Maps)
 # ==============================================================================
-# Dungeon 1: Sourdough Cavern (F1 + B2)
-d1 = reg_map('sourdough_cavern', 'Sourdough Cavern 1F', 'Breadlands', 'overworld_bread', 28, 18, 20, 21, [[33,9,13],[34,9,13],[35,9,13],[36,10,14],[37,10,14],[38,12,16]])
-d1.rect(3, 7, 23, 3, 20); d1.rect(4, 3, 8, 4, 11); d1.set(6, 4, 7) # Stairs down to B2
-d1_b2 = reg_map('sourdough_cavern_b2', 'Sourdough Cavern B2', 'Breadlands', 'overworld_bread', 24, 16, 20, 21, [[36,10,14],[37,10,14],[38,12,16]], dark=True)
-d1_b2.set(6, 4, 6); d1_b2.rect(4, 6, 16, 5, 20)
+# Dungeon 1: Sourdough Cavern (1F: Earthy cavern with wheat-moss & milk stream; B2: Dark cask cellar)
+d1 = reg_map('sourdough_cavern', 'Sourdough Cavern 1F', 'Breadlands', 'overworld_bread', 28, 18, 10, 21, [[33,9,13],[34,9,13],[35,9,13],[36,10,14],[37,10,14],[38,12,16]])
+d1.rect(3, 7, 24, 3, 17); d1.rect(4, 3, 9, 4, 11); d1.rect(15, 11, 9, 4, 13)
+d1.rect(14, 3, 8, 5, 20); d1.set(6, 4, 7)
 
-# Dungeon 2: Steamer Spire (F1 + F2)
+d1_b2 = reg_map('sourdough_cavern_b2', 'Sourdough Cavern B2', 'Breadlands', 'overworld_bread', 24, 16, 15, 15, [[36,10,14],[37,10,14],[38,12,16]], dark=True)
+d1_b2.rect(4, 3, 16, 10, 17); d1_b2.rect(3, 9, 7, 4, 15); d1_b2.rect(14, 9, 5, 4, 15); d1_b2.rect(5, 5, 14, 1, 18); d1_b2.set(11, 5, 17); d1_b2.rect(14, 3, 5, 2, 13)
+d1_b2.set(6, 4, 6)
+
+# Dungeon 2: Steamer Spire
 d2 = reg_map('steamer_spire', 'Steamer Spire 1F', 'Steambay', 'overworld_steam', 28, 18, 32, 33, [[65,22,26],[70,21,25],[71,22,26],[72,22,26],[73,22,26],[74,23,27],[75,23,27],[76,25,29]])
-d2.rect(3, 7, 23, 3, 32); d2.rect(18, 3, 6, 4, 23); d2.set(6, 4, 6) # Stairs up to F2
-d2_f2 = reg_map('steamer_spire_f2', 'Steamer Spire 2F', 'Steambay', 'overworld_steam', 24, 17, 32, 33, [[74,23,27],[75,23,27],[76,25,29]])
-d2_f2.set(6, 4, 7); d2_f2.rect(2, 8, 20, 1, 73); d2_f2.set(18, 12, 9)
+d2.rect(2, 2, 24, 14, 31); d2.rect(6, 5, 16, 8, 25); d2.rect(8, 6, 12, 6, 32)
+d2.rect(18, 3, 6, 4, 23); d2.set(6, 4, 6)
 
-# Dungeon 3: Wok Volcano (F1 + F2)
-d3 = reg_map('wok_volcano', 'Wok Volcano 1F', 'Noodleridge', 'overworld_noodle', 29, 18, 44, 45, [[108,33,37],[109,33,37],[110,33,37],[111,34,38],[112,34,38],[113,34,38],[114,36,40]])
-d3.rect(3, 7, 23, 3, 44); d3.rect(16, 3, 8, 4, 35); d3.set(6, 4, 6)
-d3_f2 = reg_map('wok_volcano_f2', 'Wok Volcano Crater', 'Noodleridge', 'overworld_noodle', 25, 16, 44, 45, [[112,34,38],[113,34,38],[114,36,40]])
-d3_f2.set(6, 4, 7); d3_f2.rect(8, 6, 8, 4, 66) # Oil-slick crater
+d2_f2 = reg_map('steamer_spire_f2', 'Steamer Spire 2F', 'Steambay', 'overworld_steam', 24, 17, 29, 33, [[74,23,27],[75,23,27],[76,25,29]])
+d2_f2.rect(2, 8, 20, 1, 73); d2_f2.set(18, 12, 9)
+d2_f2.rect(1, 10, 5, 5, 25); d2_f2.rect(18, 10, 5, 5, 25); d2_f2.rect(10, 2, 10, 4, 23); d2_f2.rect(2, 10, 4, 2, 30); d2_f2.rect(18, 10, 4, 2, 30); d2_f2.rect(10, 11, 4, 3, 30); d2_f2.rect(2, 2, 3, 5, 26); d2_f2.rect(20, 2, 3, 5, 26)
+d2_f2.set(6, 4, 7)
 
-# Dungeon 4: Broth Catacombs (F1 + B2)
-d4 = reg_map('broth_catacombs', 'Broth Catacombs 1F', 'Brothbasin', 'overworld_broth', 28, 18, 56, 57, [[145,42,46],[146,42,46],[147,43,47],[148,43,47],[149,44,48],[150,45,50]])
-d4.rect(3, 7, 23, 3, 56); d4.rect(16, 3, 8, 4, 47); d4.set(6, 4, 7)
-d4_b2 = reg_map('broth_catacombs_b2', 'Broth Catacombs B2', 'Brothbasin', 'overworld_broth', 24, 16, 56, 57, [[148,43,47],[149,44,48],[150,45,50]], dark=True)
-d4_b2.set(6, 4, 6); d4_b2.rect(2, 8, 20, 1, 73); d4_b2.set(16, 12, 9)
+# Dungeon 3: Wok Volcano
+d3 = reg_map('wok_volcano', 'Wok Volcano 1F', 'Noodleridge', 'overworld_noodle', 29, 18, 37, 45, [[108,33,37],[109,33,37],[110,33,37],[111,34,38],[112,34,38],[113,34,38],[114,36,40]])
+d3.rect(3, 7, 25, 3, 43); d3.rect(4, 3, 10, 12, 44); d3.rect(16, 3, 9, 5, 35)
+d3.set(6, 4, 6)
 
-# Dungeon 5: Chrome Fork Syndicate HQ (1F + 2F)
-d5 = reg_map('chrome_fork_hq', 'Chrome Fork HQ 1F', 'Brothbasin', 'battle_rival', 28, 18, 71, 72, [[139,40,44],[140,40,44]])
-d5.rect(2, 8, 24, 2, 71); d5.rect(8, 11, 10, 1, 67); d5.set(22, 4, 6)
-d5_f2 = reg_map('chrome_fork_hq_f2', 'Chrome Fork Executive Suite', 'Brothbasin', 'battle_rival', 24, 16, 71, 72, [])
-d5_f2.set(20, 4, 7); d5_f2.rect(2, 7, 20, 1, 73); d5_f2.set(4, 11, 9)
+d3_f2 = reg_map('wok_volcano_f2', 'Wok Volcano Crater', 'Noodleridge', 'overworld_noodle', 25, 16, 45, 45, [[112,34,38],[113,34,38],[114,36,40]])
+d3_f2.rect(3, 3, 19, 10, 34); d3_f2.rect(8, 6, 8, 4, 66)
+d3_f2.rect(4, 11, 16, 1, 65); d3_f2.set(6, 4, 7)
 
-# Dungeon 6: Truffle Cellar (1F + B2)
-d6 = reg_map('truffle_cellar', 'Truffle Cellar 1F', 'Breadlands', 'overworld_bread', 26, 18, 20, 21, [[28,7,10],[33,9,13],[36,10,14]])
-d6.rect(3, 7, 20, 3, 20); d6.set(18, 4, 7)
-d6_b2 = reg_map('truffle_cellar_b2', 'Truffle Cellar B2', 'Breadlands', 'overworld_bread', 22, 16, 20, 21, [[37,10,14],[38,12,16]], dark=True)
-d6_b2.set(18, 4, 6); d6_b2.rect(6, 7, 10, 3, 66)
+# Dungeon 4: Broth Catacombs (1F: Crypt corridors!; B2: Dark sunken cistern)
+d4 = reg_map('broth_catacombs', 'Broth Catacombs 1F', 'Brothbasin', 'overworld_broth', 28, 18, 57, 57, [[145,42,46],[146,42,46],[147,43,47],[148,43,47],[149,44,48],[150,45,50]])
+d4.rect(2, 7, 25, 3, 56)
+d4.rect(5, 3, 3, 12, 56); d4.rect(12, 3, 3, 12, 56); d4.rect(19, 3, 3, 12, 56)
+d4.rect(16, 3, 7, 4, 47)
+d4.set(8, 4, 53); d4.set(15, 13, 53); d4.set(22, 13, 53)
+d4.set(6, 4, 7)
+
+d4_b2 = reg_map('broth_catacombs_b2', 'Broth Catacombs B2', 'Brothbasin', 'overworld_broth', 24, 16, 49, 57, [[148,43,47],[149,44,48],[150,45,50]], dark=True)
+d4_b2.rect(2, 3, 20, 10, 48)
+d4_b2.rect(4, 5, 4, 2, 49); d4_b2.rect(16, 5, 4, 2, 49); d4_b2.rect(9, 4, 6, 2, 53)
+d4_b2.rect(2, 8, 20, 1, 73); d4_b2.set(16, 12, 9)
+d4_b2.set(6, 4, 6)
+
+# Dungeon 5: Chrome Fork Syndicate HQ
+d5 = reg_map('chrome_fork_hq', 'Chrome Fork HQ 1F', 'Brothbasin', 'battle_rival', 28, 18, 58, 72, [[139,40,44],[140,40,44]])
+d5.rect(1, 7, 26, 3, 59)
+d5.rect(4, 2, 8, 2, 1)
+d5.rect(8, 11, 10, 1, 67)
+d5.rect(15, 2, 3, 5, 72); d5.rect(20, 11, 4, 5, 72); d5.rect(2, 11, 5, 3, 5); d5.rect(18, 2, 5, 2, 1)
+d5.set(22, 4, 6)
+
+d5_f2 = reg_map('chrome_fork_hq_f2', 'Chrome Fork Executive Suite', 'Brothbasin', 'battle_rival', 24, 16, 58, 72, [])
+d5_f2.rect(2, 7, 20, 1, 73); d5_f2.set(4, 11, 9)
+for cx in (4, 9, 14):
+    d5_f2.rect(cx, 9, 3, 1, 5); d5_f2.rect(cx, 12, 3, 1, 5)
+    d5_f2.set(cx, 10, 72); d5_f2.set(cx, 13, 72)
+d5_f2.rect(2, 2, 16, 4, 59); d5_f2.rect(2, 8, 2, 6, 72); d5_f2.rect(20, 8, 2, 6, 72)
+d5_f2.set(20, 4, 7)
+
+# Dungeon 6: Truffle Cellar (1F: Stone cellar with wine racks; B2: Dark mushroom grotto)
+d6 = reg_map('truffle_cellar', 'Truffle Cellar 1F', 'Breadlands', 'overworld_bread', 26, 18, 21, 21, [[28,7,10],[33,9,13],[36,10,14]])
+d6.rect(1, 7, 24, 3, 17)
+d6.rect(3, 2, 17, 14, 12)
+for rx in (4, 9, 14):
+    d6.rect(rx, 3, 3, 3, 5); d6.rect(rx, 11, 3, 3, 5)
+d6.rect(19, 11, 4, 4, 19)
+d6.set(18, 4, 7)
+
+d6_b2 = reg_map('truffle_cellar_b2', 'Truffle Cellar B2', 'Breadlands', 'overworld_bread', 22, 16, 19, 21, [[37,10,14],[38,12,16]], dark=True)
+d6_b2.rect(3, 3, 16, 10, 20); d6_b2.rect(6, 7, 10, 3, 66)
+d6_b2.rect(3, 10, 3, 3, 13); d6_b2.rect(16, 10, 3, 3, 13)
+d6_b2.set(18, 4, 6)
 
 # ==============================================================================
 # 6. GRAND TASTING HALL & ETERNAL PANTRY
 # ==============================================================================
 gth = reg_map('grand_tasting_hall', 'Grand Tasting Hall', 'TastingHall', 'town_broth', 28, 22, 58, 60, [])
-gth.rect(12, 1, 4, 20, 59)
-gth.set(6, 5, 60); gth.set(21, 5, 60); gth.set(6, 15, 60); gth.set(21, 15, 60)
-gth.add_sign(11, 19, 'Grand Tasting Hall - Champion Gauntlet')
+gth.rect(11, 1, 6, 20, 59)
+gth.rect(3, 4, 5, 14, 60); gth.rect(20, 4, 5, 14, 60)
+gth.rect(8, 14, 3, 4, 58)
+gth.add_sign(10, 19, 'Grand Tasting Hall - Champion Gauntlet')
 
-ep = reg_map('eternal_pantry', 'Eternal Pantry', 'Postgame', 'postgame', 32, 22, 61, 63, [[1,48,54],[39,48,54],[77,48,54],[115,48,54],[38,50,55],[76,50,55],[114,50,55],[150,52,58]])
-ep.rect(14, 1, 4, 20, 59)
-ep.rect(4, 4, 7, 5, 62); ep.rect(21, 4, 7, 5, 62)
-ep.rect(4, 12, 7, 5, 62); ep.rect(21, 12, 7, 5, 62)
-ep.add_sign(13, 19, 'Eternal Pantry - Postgame Paradise')
+ep = reg_map('eternal_pantry', 'Eternal Pantry', 'Postgame', 'postgame', 32, 22, 62, 63, [[1,48,54],[39,48,54],[77,48,54],[115,48,54],[38,50,55],[76,50,55],[114,50,55],[150,52,58]])
+ep.rect(13, 1, 6, 20, 59)
+ep.rect(3, 9, 26, 4, 58)
+ep.rect(3, 3, 8, 5, 61); ep.rect(21, 3, 8, 5, 61)
+ep.rect(3, 14, 8, 5, 61); ep.rect(21, 14, 8, 5, 61)
+ep.add_sign(12, 19, 'Eternal Pantry - Postgame Paradise')
 
 # ==============================================================================
 # 7. LINK ALL MAPS & INTERIORS (Zero blocked portals!)
 # ==============================================================================
-# Main Spine
 SPINE = [
   ('cruston_town', 16, 0, 'toastwood_trail', 15, 23, 12, 12, 0),
   ('toastwood_trail', 15, 0, 'deli_meadows', 17, 19, 12, 12, 0),
-  ('deli_meadows', 17, 0, 'panini_plaza', 17, 21, 12, 12, 0),
+  ('deli_meadows', 17, 0, 'panini_plaza', 17, 23, 12, 12, 0),
   ('panini_plaza', 17, 0, 'bao_harbor', 17, 21, 12, 24, 2),
   ('bao_harbor', 17, 0, 'bamboo_mist_path', 16, 21, 24, 29, 0),
   ('bamboo_mist_path', 16, 0, 'gyoza_cove', 17, 19, 29, 24, 0),
@@ -421,9 +541,9 @@ SPINE = [
   ('pierogi_pier', 16, 0, 'udon_hollow', 16, 21, 31, 36, 4),
   ('udon_hollow', 16, 0, 'slurp_canyon', 17, 21, 36, 43, 0),
   ('slurp_canyon', 17, 0, 'al_dente_ascent', 16, 21, 43, 43, 0),
-  ('al_dente_ascent', 16, 0, 'ramen_summit', 16, 21, 43, 36, 0),
-  ('ramen_summit', 16, 0, 'chowder_crossing', 16, 21, 36, 48, 6),
-  ('chowder_crossing', 16, 0, 'simmer_fen', 17, 21, 48, 48, 0),
+  ('al_dente_ascent', 16, 0, 'ramen_summit', 16, 23, 43, 36, 0),
+  ('ramen_summit', 16, 0, 'chowder_crossing', 16, 20, 36, 48, 6),
+  ('chowder_crossing', 16, 0, 'simmer_fen', 17, 22, 48, 48, 0),
   ('simmer_fen', 17, 0, 'kettle_gorge', 16, 21, 48, 48, 0),
   ('kettle_gorge', 16, 0, 'bisque_bastion', 17, 21, 48, 48, 0),
   ('bisque_bastion', 17, 0, 'grand_tasting_hall', 13, 21, 48, 59, 8),
@@ -431,56 +551,53 @@ SPINE = [
 for a, ax, ay, b, bx, by, pa, pb, req in SPINE:
     link_maps(a, ax, ay, b, bx, by, pa, pb, reqSeals=req)
 
-# Postgame link
 link_maps('grand_tasting_hall', 13, 0, 'eternal_pantry', 15, 21, 59, 59, reqChampion=True)
 
-# Building Doors -> Interiors & Kitchen Gyms
 DOORS = [
-  ('cruston_town', 7, 6, 'cruston_lab', 9, 11, 12, 17),
-  ('cruston_town', 26, 6, 'cruston_inn', 9, 11, 12, 41),
-  ('cruston_town', 7, 16, 'cruston_mart', 9, 11, 12, 0),
-  ('cruston_town', 26, 16, 'cruston_cafe', 9, 11, 12, 29),
-  ('panini_plaza', 7, 6, 'panini_inn', 9, 11, 12, 41),
-  ('panini_plaza', 29, 6, 'panini_mart', 9, 11, 12, 0),
-  ('panini_plaza', 7, 17, 'gym_toaster', 11, 15, 12, 17),
-  ('panini_plaza', 28, 17, 'gym_deli', 11, 15, 12, 12),
-  ('bao_harbor', 7, 6, 'bao_inn', 9, 11, 24, 29),
-  ('bao_harbor', 29, 6, 'bao_mart', 9, 11, 24, 31),
-  ('bao_harbor', 18, 6, 'gym_bamboo', 11, 15, 24, 29),
-  ('gyoza_cove', 26, 5, 'gym_skillet', 11, 15, 24, 31),
-  ('pierogi_pier', 7, 6, 'pierogi_inn', 9, 11, 31, 29),
-  ('pierogi_pier', 27, 6, 'pierogi_mart', 9, 11, 31, 31),
-  ('udon_hollow', 7, 6, 'udon_inn', 9, 11, 36, 41),
-  ('udon_hollow', 27, 6, 'udon_mart', 9, 11, 36, 36),
-  ('udon_hollow', 17, 6, 'gym_dojo', 11, 15, 36, 41),
-  ('al_dente_ascent', 25, 6, 'gym_wokpeak', 11, 15, 36, 36),
-  ('ramen_summit', 7, 6, 'ramen_inn', 9, 11, 36, 41),
-  ('ramen_summit', 27, 6, 'ramen_mart', 9, 11, 36, 36),
-  ('chowder_crossing', 7, 6, 'chowder_inn', 9, 11, 48, 48),
-  ('chowder_crossing', 27, 6, 'chowder_mart', 9, 11, 48, 48),
-  ('chowder_crossing', 17, 6, 'gym_cauldron', 11, 15, 48, 48),
-  ('bisque_bastion', 7, 6, 'bisque_inn', 9, 11, 48, 48),
-  ('bisque_bastion', 29, 6, 'bisque_mart', 9, 11, 48, 48),
-  ('bisque_bastion', 28, 17, 'gym_vault', 11, 15, 48, 56),
+  ('cruston_town', *d_lab, 'cruston_lab', 12, 20),
+  ('cruston_town', *d_inn, 'cruston_inn', 12, 41),
+  ('cruston_town', *d_mart, 'cruston_mart', 12, 0),
+  ('cruston_town', *d_cafe, 'cruston_cafe', 12, 29),
+  ('panini_plaza', *d_p_inn, 'panini_inn', 12, 17),
+  ('panini_plaza', *d_p_mart, 'panini_mart', 12, 17),
+  ('panini_plaza', *d_gym1, 'gym_toaster', 12, 17),
+  ('panini_plaza', *d_gym2, 'gym_deli', 12, 20),
+  ('bao_harbor', *d_b_inn, 'bao_inn', 24, 29),
+  ('bao_harbor', *d_b_mart, 'bao_mart', 24, 24),
+  ('bao_harbor', *d_gym3, 'gym_bamboo', 24, 31),
+  ('gyoza_cove', *d_gym4, 'gym_skillet', 24, 31),
+  ('pierogi_pier', *d_pi_inn, 'pierogi_inn', 31, 29),
+  ('pierogi_pier', *d_pi_mart, 'pierogi_mart', 31, 29),
+  ('udon_hollow', *d_u_inn, 'udon_inn', 36, 41),
+  ('udon_hollow', *d_u_mart, 'udon_mart', 36, 36),
+  ('udon_hollow', *d_gym5, 'gym_dojo', 36, 41),
+  ('al_dente_ascent', *d_gym6, 'gym_wokpeak', 36, 36),
+  ('ramen_summit', *d_r_inn, 'ramen_inn', 36, 41),
+  ('ramen_summit', *d_r_mart, 'ramen_mart', 36, 36),
+  ('chowder_crossing', *d_c_inn, 'chowder_inn', 48, 48),
+  ('chowder_crossing', *d_c_mart, 'chowder_mart', 48, 48),
+  ('chowder_crossing', *d_gym7, 'gym_cauldron', 48, 56),
+  ('bisque_bastion', *d_bi_inn, 'bisque_inn', 48, 48),
+  ('bisque_bastion', *d_bi_mart, 'bisque_mart', 48, 56),
+  ('bisque_bastion', *d_gym8, 'gym_vault', 48, 48),
 ]
-for a, ax, ay, b, bx, by, pa, pb in DOORS:
+for a, ax, ay, b, pa, pb in DOORS:
     mb_dest = MAPS_DATA[b]['mb']
     link_maps(a, ax, ay, b, mb_dest.w // 2, mb_dest.h - 1, pa, pb)
 
-# Dungeon Links (all 6 dungeons + 2nd floors)
 DUNGEON_LINKS = [
-  ('panini_plaza', 0, 11, 'sourdough_cavern', 27, 8, 12, 20),
+  ('panini_plaza', 0, 11, 'sourdough_cavern', 27, 8, 12, 17),
   ('sourdough_cavern', 6, 4, 'sourdough_cavern_b2', 6, 4, 20, 20),
   ('pierogi_pier', 0, 11, 'steamer_spire', 27, 8, 24, 32),
   ('steamer_spire', 6, 4, 'steamer_spire_f2', 6, 4, 32, 32),
-  ('ramen_summit', 0, 11, 'wok_volcano', 28, 8, 36, 44),
-  ('wok_volcano', 6, 4, 'wok_volcano_f2', 6, 4, 44, 44),
+  ('ramen_summit', 0, 11, 'wok_volcano', 28, 8, 36, 43),
+  ('wok_volcano', 6, 4, 'wok_volcano_f2', 6, 4, 43, 34),
   ('bisque_bastion', 0, 11, 'broth_catacombs', 27, 8, 48, 56),
-  ('broth_catacombs', 6, 4, 'broth_catacombs_b2', 6, 4, 56, 56),
-  ('bisque_bastion', 35, 11, 'chrome_fork_hq', 0, 8, 48, 71),
-  ('chrome_fork_hq', 22, 4, 'chrome_fork_hq_f2', 20, 4, 71, 71),
-  ('deli_meadows', 35, 9, 'truffle_cellar', 0, 8, 12, 20),
-  ('truffle_cellar', 18, 4, 'truffle_cellar_b2', 18, 4, 20, 20),
+  ('broth_catacombs', 6, 4, 'broth_catacombs_b2', 6, 4, 56, 48),
+  ('bisque_bastion', 35, 11, 'chrome_fork_hq', 0, 8, 48, 59),
+  ('chrome_fork_hq', 22, 4, 'chrome_fork_hq_f2', 20, 4, 59, 59),
+  ('deli_meadows', 35, 9, 'truffle_cellar', 0, 8, 12, 17),
+  ('truffle_cellar', 18, 4, 'truffle_cellar_b2', 18, 4, 17, 20),
 ]
 for a, ax, ay, b, bx, by, pa, pb in DUNGEON_LINKS:
     link_maps(a, ax, ay, b, bx, by, pa, pb)
@@ -489,22 +606,22 @@ for a, ax, ay, b, bx, by, pa, pb in DUNGEON_LINKS:
 # 8. QUESTS (16), SECRETS (12), SYNDICATE, RIVAL (6), NAMED NPCS & 800+ REAL LINES
 # ==============================================================================
 QUESTS = [
-  {'id':'q1_butter', 'name':'Cultured Butter Hunt', 'steps':1, 'reward':'3x Ceramic Plate', 'map':'cruston_town'},
-  {'id':'q2_lid', 'name':'Lost Bamboo Lid', 'steps':1, 'reward':'2x Bento Lacquer Set + 300G', 'map':'bao_harbor'},
-  {'id':'q3_chopsticks', 'name':'Golden Chopsticks', 'steps':1, 'reward':'500G', 'map':'slurp_canyon'},
-  {'id':'q4_truffle', 'name':'Midnight Truffle Broth', 'steps':1, 'reward':'Royal Banquet Setting', 'map':'bisque_bastion'},
-  {'id':'q5_starter', 'name':'The Ancient Starter (Multi)', 'steps':2, 'reward':'Recipe: Aged Cheddar + 400G', 'map':'panini_plaza'},
-  {'id':'q6_ginger', 'name':'Ginger Trade Route (Multi)', 'steps':2, 'reward':'2x Hearty Stew + 350G', 'map':'bamboo_mist_path'},
-  {'id':'q7_chili', 'name':'Five-Alarm Delivery (Multi)', 'steps':2, 'reward':'Recipe: Sriracha Beam + 500G', 'map':'ramen_summit'},
-  {'id':'q8_ladle', 'name':'Copper Ladle Mystery (Multi)', 'steps':2, 'reward':'Grand Feast + 600G', 'map':'simmer_fen'},
-  {'id':'q9_critics', 'name':'Tour of Four Palates (Multi)', 'steps':3, 'reward':'Royal Banquet Setting', 'map':'cruston_town'},
-  {'id':'q10_crumb', 'name':'Panko Trail', 'steps':1, 'reward':'2x Warm Broth Cup', 'map':'deli_meadows'},
-  {'id':'q11_scallion', 'name':'Scallion Harvest', 'steps':1, 'reward':'Chef Garnish Treat x3', 'map':'pierogi_pier'},
-  {'id':'q12_salt', 'name':'Sea Salt Crystals', 'steps':1, 'reward':'Wooden Board x2', 'map':'gyoza_cove'},
-  {'id':'q13_stock', 'name':'Perpetual Simmer', 'steps':1, 'reward':'Recipe: Boil Over', 'map':'kettle_gorge'},
-  {'id':'q14_steam', 'name':'Mist Lanterns', 'steps':1, 'reward':'Peppermint Tea x3', 'map':'steamer_spire'},
-  {'id':'q15_wok', 'name':'Wok Hei Spark', 'steps':1, 'reward':'Double Espresso x2', 'map':'wok_volcano'},
-  {'id':'q16_banquet', 'name':'Eternal Banquet Prep (Multi)', 'steps':2, 'reward':'2000G + Grand Feast x2', 'map':'eternal_pantry'}
+  {'id':'q1_butter', 'name':'Cultured Butter Hunt (Multi)', 'steps':2, 'reqStarted':True, 'reqSteps':0, 'reward':'3x Ceramic Plate', 'map':'cruston_town'},
+  {'id':'q2_lid', 'name':'Lost Bamboo Lid (Multi)', 'steps':2, 'reqStarted':True, 'reqSteps':0, 'reward':'2x Bento Lacquer Set + 300G', 'map':'bao_harbor'},
+  {'id':'q3_chopsticks', 'name':'Golden Chopsticks', 'steps':1, 'reqStarted':False, 'reqSteps':0, 'reward':'500G', 'map':'slurp_canyon'},
+  {'id':'q4_truffle', 'name':'Midnight Truffle Broth', 'steps':1, 'reqStarted':False, 'reqSteps':0, 'reward':'Royal Banquet Setting', 'map':'bisque_bastion'},
+  {'id':'q5_starter', 'name':'The Ancient Starter (Multi)', 'steps':2, 'reqStarted':True, 'reqSteps':0, 'reward':'Recipe: Aged Cheddar + 400G', 'map':'panini_plaza'},
+  {'id':'q6_ginger', 'name':'Ginger Trade Route (Multi)', 'steps':2, 'reqStarted':True, 'reqSteps':0, 'reward':'2x Hearty Stew + 350G', 'map':'bamboo_mist_path'},
+  {'id':'q7_chili', 'name':'Five-Alarm Delivery (Multi)', 'steps':2, 'reqStarted':True, 'reqSteps':0, 'reward':'Recipe: Sriracha Beam + 500G', 'map':'al_dente_ascent'},
+  {'id':'q8_ladle', 'name':'Copper Ladle Mystery (Multi)', 'steps':2, 'reqStarted':True, 'reqSteps':0, 'reward':'Grand Feast + 600G', 'map':'chowder_crossing'},
+  {'id':'q9_critics', 'name':'Tour of Four Palates (Multi)', 'steps':4, 'reqStarted':True, 'reqSteps':2, 'reward':'Royal Banquet Setting', 'map':'cruston_town'},
+  {'id':'q10_crumb', 'name':'Panko Trail', 'steps':1, 'reqStarted':False, 'reqSteps':0, 'reward':'2x Warm Broth Cup', 'map':'deli_meadows'},
+  {'id':'q11_scallion', 'name':'Scallion Harvest', 'steps':1, 'reqStarted':False, 'reqSteps':0, 'reward':'Chef Garnish Treat x3', 'map':'pierogi_pier'},
+  {'id':'q12_salt', 'name':'Sea Salt Crystals', 'steps':1, 'reqStarted':False, 'reqSteps':0, 'reward':'Wooden Board x2', 'map':'gyoza_cove'},
+  {'id':'q13_stock', 'name':'Perpetual Simmer', 'steps':1, 'reqStarted':False, 'reqSteps':0, 'reward':'Recipe: Boil Over', 'map':'kettle_gorge'},
+  {'id':'q14_steam', 'name':'Mist Lanterns', 'steps':1, 'reqStarted':False, 'reqSteps':0, 'reward':'Peppermint Tea x3', 'map':'steamer_spire'},
+  {'id':'q15_wok', 'name':'Wok Hei Spark', 'steps':1, 'reqStarted':False, 'reqSteps':0, 'reward':'Double Espresso x2', 'map':'wok_volcano'},
+  {'id':'q16_banquet', 'name':'Eternal Banquet Prep (Multi)', 'steps':2, 'reqStarted':True, 'reqSteps':0, 'reward':'2000G + Grand Feast x2', 'map':'grand_tasting_hall'}
 ]
 
 SECRETS = [
@@ -533,7 +650,7 @@ NAMED_NPCS = [
   ('cruston_town', {'id':'critic_brie','x':20,'y':8,'name':'Food Critic Brie','sprite':'critic_brie','dir':'left','questGive':'q9_critics','lines':['I am judging the Tour of Four Palates! Visit Critics Camembert, Vermicelli, and Bisquetta across the regions!']}),
 
   # Toastwood & Deli
-  ('toastwood_trail', {'id':'butter_item','x':6,'y':14,'name':'Cultured Butter','sprite':'item_chest','dir':'down','questComplete':'q1_butter','lines':['Found Baker Barnaby Cultured Butter! Received 3x Ceramic Plate!']}),
+  ('toastwood_trail', {'id':'butter_item','x':6,'y':14,'name':'Cultured Butter','sprite':'item_chest','dir':'down','questComplete':'q1_butter','reqStarted':True,'notStartedMsg':'A tub of Cultured Butter! Ask Baker Barnaby in Cruston Town if he lost it first.','lines':['Found Baker Barnaby Cultured Butter! Received 3x Ceramic Plate!']}),
   ('toastwood_trail', {'id':'saffron_1','x':15,'y':14,'name':'Rival Saffron','sprite':'saffron','dir':'down','trainer':'rival_1','lines':['Hmph! My plating angles are 100 percent geometric!']}),
   ('toastwood_trail', {'id':'syn_vesper','x':15,'y':6,'name':'Auditor Vesper','sprite':'officer_vesper','dir':'down','trainer':'officer_vesper','lines':['Good afternoon! Chrome Fork Syndicate is auditing this trail for unauthorized flavor!']}),
   ('deli_meadows', {'id':'crumb_item','x':24,'y':14,'name':'Panko Bag','sprite':'item_chest','dir':'down','questComplete':'q10_crumb','lines':['Found the lost Panko Bag! Received 2x Warm Broth Cup!']}),
@@ -547,7 +664,7 @@ NAMED_NPCS = [
   ('gym_deli', {'id':'jr_deli_1','x':16,'y':10,'name':'Sous-Chef Slicer','sprite':'villager_1','dir':'left','trainer':'jr_bread_2','lines':['Hit the floor switch to unlock the deli counter!']}),
   ('gym_deli', {'id':'clara_npc','x':11,'y':3,'name':'Head Chef Clara Coldcut','sprite':'chef_clara','dir':'down','trainer':'chef_clara','lines':['At Deli Counter Spire, every layer matters!']}),
 
-  ('sourdough_cavern_b2', {'id':'starter_jar','x':12,'y':8,'name':'Ancient Starter Jar','sprite':'item_chest','dir':'down','questComplete':'q5_starter','lines':['The 100-year starter bubbles happily! Learned Recipe: Aged Cheddar + 400G!']}),
+  ('sourdough_cavern_b2', {'id':'starter_jar','x':12,'y':8,'name':'Ancient Starter Jar','sprite':'item_chest','dir':'down','questComplete':'q5_starter','reqStarted':True,'notStartedMsg':'An ancient bubbling starter! Speak with the Yeast Monk in Panini Plaza first.','lines':['The 100-year starter bubbles happily! Learned Recipe: Aged Cheddar + 400G!']}),
   ('sourdough_cavern_b2', {'id':'yeast_block','x':10,'y':8,'name':'Sourdough Cask','sprite':'push_block','dir':'down','pushable':True,'lines':['A heavy oak sourdough cask.']}),
   ('truffle_cellar_b2', {'id':'truffle_guardian','x':11,'y':5,'name':'Cellar Hermit Truff','sprite':'villager_9','dir':'down','trainer':'truffle_guard','lines':['These cellar mushrooms sing to anyone who listens!']}),
 
@@ -555,14 +672,14 @@ NAMED_NPCS = [
   ('bao_inn', {'id':'inn_bao','x':9,'y':4,'name':'Innkeeper Mei-Ling','sprite':'inn','dir':'down','action':'heal','lines':['Bao Harbor Simmer Inn! Bamboo mist restores all HP and PP!']}),
   ('bao_mart', {'id':'mart_bao','x':9,'y':5,'name':'Clerk Buns','sprite':'mart','dir':'down','action':'shop','lines':['Steambay Pantry Mart! Ceramic Plates and Hearty Stews now in stock!']}),
   ('bao_harbor', {'id':'apprentice_lin','x':20,'y':13,'name':'Apprentice Lin','sprite':'apprentice_lin','dir':'left','questGive':'q2_lid','lines':['Master Baozi lucky Bamboo Lid blew north into Gyoza Cove!']}),
-  ('bao_harbor', {'id':'critic_camembert','x':12,'y':13,'name':'Critic Camembert','sprite':'villager_11','dir':'right','questStep':'q9_critics','lines':['Steambay pleats are sublime! Next stop: Critic Vermicelli in Udon Hollow!']}),
+  ('bao_harbor', {'id':'critic_camembert','x':12,'y':13,'name':'Critic Camembert','sprite':'villager_11','dir':'right','questStep':'q9_critics','stepIndex':1,'notStartedMsg':'Register for the Tour of Four Palates with Critic Brie in Cruston Town first!','lines':['Steambay pleats are sublime! Next stop: Critic Vermicelli in Udon Hollow!']}),
   ('gym_bamboo', {'id':'jr_steam_1','x':4,'y':11,'name':'Sous-Chef Vapor','sprite':'villager_2','dir':'right','trainer':'jr_steam_1','lines':['Watch your step on the sesame-oil floor!']}),
   ('gym_bamboo', {'id':'baozi_npc','x':11,'y':3,'name':'Head Chef Master Baozi','sprite':'chef_baozi','dir':'down','trainer':'chef_baozi','lines':['Breathe in the mist of Bamboo Cloud Kitchen!']}),
 
-  ('bamboo_mist_path', {'id':'ginger_kai','x':10,'y':10,'name':'Ginger Merchant Kai','sprite':'ginger_kai','dir':'down','questStep':'q6_ginger','lines':['Take this fresh ginger root to Tea Master Po in Pierogi Pier!']}),
+  ('bamboo_mist_path', {'id':'ginger_kai','x':10,'y':10,'name':'Ginger Merchant Kai','sprite':'ginger_kai','dir':'down','questGive':'q6_ginger','lines':['Take this fresh ginger root to Tea Master Po in Pierogi Pier!']}),
   ('bamboo_mist_path', {'id':'syn_crumb','x':16,'y':8,'name':'Director Crumb','sprite':'officer_crumb','dir':'down','trainer':'officer_crumb','lines':['Hello valued customer! Chrome Fork is replacing all bamboo steamers with Beige Kiosks!']}),
 
-  ('gyoza_cove', {'id':'lid_item','x':10,'y':4,'name':'Lucky Bamboo Lid','sprite':'item_chest','dir':'down','questComplete':'q2_lid','lines':['Found the Lucky Bamboo Lid! Received 2x Bento Lacquer Set + 300G!']}),
+  ('gyoza_cove', {'id':'lid_item','x':10,'y':4,'name':'Lucky Bamboo Lid','sprite':'item_chest','dir':'down','questComplete':'q2_lid','reqStarted':True,'notStartedMsg':'A lucky bamboo steamer lid! Speak with Apprentice Lin in Bao Harbor first.','lines':['Found the Lucky Bamboo Lid! Received 2x Bento Lacquer Set + 300G!']}),
   ('gyoza_cove', {'id':'salt_item','x':24,'y':14,'name':'Sea Salt Crystal','sprite':'item_chest','dir':'down','questComplete':'q12_salt','lines':['Gathered pure Sea Salt Crystals! Received 2x Wooden Board!']}),
   ('gyoza_cove', {'id':'saffron_2','x':17,'y':13,'name':'Rival Saffron','sprite':'saffron','dir':'down','trainer':'rival_2','lines':['I bought a Ceramic Plate just to flex on you!']}),
   ('gym_skillet', {'id':'jr_skillet_1','x':16,'y':10,'name':'Sous-Chef Sizzle','sprite':'villager_4','dir':'left','trainer':'jr_steam_2','lines':['Flip the switch to open the skillet pass!']}),
@@ -570,14 +687,14 @@ NAMED_NPCS = [
 
   ('pierogi_inn', {'id':'inn_pierogi','x':9,'y':4,'name':'Innkeeper Zosia','sprite':'inn','dir':'down','action':'heal','lines':['Pierogi Pier Simmer Inn! Rest by the harbor!']}),
   ('pierogi_mart', {'id':'mart_pierogi','x':9,'y':5,'name':'Clerk Pierog','sprite':'mart','dir':'down','action':'shop','lines':['Pierogi Pier Mart! Ceramic Plates ready for your party!']}),
-  ('pierogi_pier', {'id':'tea_master_po','x':10,'y':9,'name':'Tea Master Po','sprite':'tea_master_po','dir':'down','questComplete':'q6_ginger','lines':['Oh, fresh ginger from Bamboo Mist Path! Received 2x Hearty Stew + 350G!']}),
+  ('pierogi_pier', {'id':'tea_master_po','x':10,'y':9,'name':'Tea Master Po','sprite':'tea_master_po','dir':'down','questComplete':'q6_ginger','reqStarted':True,'notStartedMsg':'You have not picked up the fresh ginger order from Ginger Merchant Kai in Bamboo Mist Path yet!','lines':['Oh, fresh ginger from Bamboo Mist Path! Received 2x Hearty Stew + 350G!']}),
   ('pierogi_pier', {'id':'scallion_sue','x':22,'y':12,'name':'Scallion Farmer Sue','sprite':'scallion_sue','dir':'left','questComplete':'q11_scallion','lines':['Thanks for admiring our scallions! Take 3x Chef Garnish Treat!']}),
   ('steamer_spire_f2', {'id':'spire_lantern','x':12,'y':4,'name':'Mist Lantern','sprite':'item_chest','dir':'down','questComplete':'q14_steam','lines':['Lit the Mist Lantern! Received 3x Peppermint Tea!']}),
 
   # Noodleridge + Gyms 5 & 6
   ('udon_inn', {'id':'inn_udon','x':9,'y':4,'name':'Innkeeper Kazu','sprite':'inn','dir':'down','action':'heal','lines':['Udon Hollow Simmer Inn! Rest your noodles!']}),
   ('udon_mart', {'id':'mart_udon','x':9,'y':5,'name':'Clerk Slurp','sprite':'mart','dir':'down','action':'shop','lines':['Noodleridge Pantry Mart! Bento Lacquer Sets and Double Espresso unlocked!']}),
-  ('udon_hollow', {'id':'critic_vermicelli','x':21,'y':13,'name':'Critic Vermicelli','sprite':'villager_3','dir':'left','questStep':'q9_critics','lines':['Al dente perfection! Now visit Critic Bisquetta in Chowder Crossing!']}),
+  ('udon_hollow', {'id':'critic_vermicelli','x':21,'y':13,'name':'Critic Vermicelli','sprite':'villager_3','dir':'left','questStep':'q9_critics','stepIndex':2,'notStartedMsg':'Register with Critic Brie in Cruston Town first!','notReadyMsg':'You have not visited Critic Camembert in Bao Harbor yet!','lines':['Al dente perfection! Now visit Critic Bisquetta in Chowder Crossing!']}),
   ('gym_dojo', {'id':'dough_block','x':10,'y':8,'name':'Dough Boulder','sprite':'push_block','dir':'down','pushable':True,'lines':['A springy ball of hand-pulled dough.']}),
   ('gym_dojo', {'id':'jr_dojo_1','x':11,'y':10,'name':'Sous-Chef Stretch','sprite':'villager_7','dir':'down','trainer':'jr_noodle_1','lines':['Stretch your posture before facing Sensei Twirl!']}),
   ('gym_dojo', {'id':'twirl_npc','x':11,'y':3,'name':'Head Chef Sensei Twirl','sprite':'chef_twirl','dir':'down','trainer':'chef_twirl','lines':['Hand-pulled dough stretches ten feet without snapping!']}),
@@ -585,22 +702,24 @@ NAMED_NPCS = [
   ('slurp_canyon', {'id':'chopsticks_item','x':10,'y':6,'name':'Golden Chopsticks','sprite':'item_chest','dir':'down','questComplete':'q3_chopsticks','lines':['Found the Golden Chopsticks! Received 500G!']}),
   ('slurp_canyon', {'id':'syn_glaze','x':17,'y':13,'name':'VP Synergy Glaze','sprite':'officer_glaze','dir':'down','trainer':'officer_glaze','lines':['Surprise inspection! Your noodle bounce is 3 percent off corporate spec!']}),
   ('al_dente_ascent', {'id':'saffron_3','x':16,'y':13,'name':'Rival Saffron','sprite':'saffron','dir':'down','trainer':'rival_3','lines':['I timed my boiling water to the millisecond!']}),
+  ('al_dente_ascent', {'id':'chili_grower','x':10,'y':10,'name':'Chili Grower Pepper','sprite':'villager_4','dir':'down','questGive':'q7_chili','lines':['Please deliver these five-alarm chilies to Chili Courier Rico in Ramen Summit!']}),
   ('gym_wokpeak', {'id':'jr_wok_1','x':11,'y':11,'name':'Sous-Chef Simmer','sprite':'villager_6','dir':'down','trainer':'jr_noodle_2','lines':['Keep your balance on the olive-oil tiles!']}),
   ('gym_wokpeak', {'id':'fusilli_npc','x':11,'y':3,'name':'Head Chef Nonna Fusilli','sprite':'chef_fusilli','dir':'down','trainer':'chef_fusilli','lines':['Nonna Fusilli never measures basil with a spoon!']}),
 
   ('ramen_inn', {'id':'inn_ramen','x':9,'y':4,'name':'Innkeeper Taro','sprite':'inn','dir':'down','action':'heal','lines':['Ramen Summit Simmer Inn! Warm broth for mountain climbers!']}),
   ('ramen_mart', {'id':'mart_ramen','x':9,'y':5,'name':'Clerk Chili','sprite':'mart','dir':'down','action':'shop','lines':['Ramen Summit Mart! Bento Sets and Spicy Recipe Cards!']}),
-  ('ramen_summit', {'id':'chili_rico','x':12,'y':13,'name':'Chili Courier Rico','sprite':'chili_rico','dir':'down','questComplete':'q7_chili','lines':['Five-alarm chili delivered to the summit! Received Recipe: Sriracha Beam + 500G!']}),
+  ('ramen_summit', {'id':'chili_rico','x':12,'y':13,'name':'Chili Courier Rico','sprite':'chili_rico','dir':'down','questComplete':'q7_chili','reqStarted':True,'notStartedMsg':'Chili Grower Pepper on Al Dente Ascent has not packed the five-alarm crate yet!','lines':['Five-alarm chili delivered to the summit! Received Recipe: Sriracha Beam + 500G!']}),
   ('wok_volcano_f2', {'id':'wok_ember','x':12,'y':4,'name':'Wok Hei Ember','sprite':'item_chest','dir':'down','questComplete':'q15_wok','lines':['Captured a Wok Hei Spark! Received 2x Double Espresso!']}),
 
   # Brothbasin + Gyms 7 & 8 + Syndicate HQ
   ('chowder_inn', {'id':'inn_chowder','x':9,'y':4,'name':'Innkeeper Pearl','sprite':'inn','dir':'down','action':'heal','lines':['Brothbasin Simmer Inn! Ladle up some rest!']}),
   ('chowder_mart', {'id':'mart_chowder','x':9,'y':5,'name':'Clerk Ladle','sprite':'mart','dir':'down','action':'shop','lines':['Brothbasin Pantry Mart! Royal Banquet Settings and Grand Feasts now in stock!']}),
-  ('chowder_crossing', {'id':'critic_bisquetta','x':21,'y':13,'name':'Critic Bisquetta','sprite':'villager_10','dir':'left','questComplete':'q9_critics','lines':['Four Palates complete! Take this Royal Banquet Setting!']}),
+  ('chowder_crossing', {'id':'critic_bisquetta','x':21,'y':13,'name':'Critic Bisquetta','sprite':'villager_10','dir':'left','questComplete':'q9_critics','reqStarted':True,'reqSteps':2,'notStartedMsg':'You have not started the Tour of Four Palates with Critic Brie in Cruston Town yet!','notReadyMsg':'You have not visited Camembert and Vermicelli in order yet!','lines':['Four Palates complete! Take this Royal Banquet Setting!']}),
+  ('chowder_crossing', {'id':'tinker_brothwick','x':20,'y':13,'name':'Tinkerer Brothwick','sprite':'villager_6','dir':'left','questGive':'q8_ladle','lines':['My heirloom Copper Ladle sank in Simmer Fen to the north! Could you fetch it?']}),
   ('gym_cauldron', {'id':'jr_broth_1','x':15,'y':10,'name':'Sous-Chef Roux','sprite':'villager_8','dir':'left','trainer':'jr_broth_1','lines':['Light your lantern and find the cauldron switch!']}),
   ('gym_cauldron', {'id':'bisque_npc','x':11,'y':3,'name':'Head Chef Alchemist Bisque','sprite':'chef_bisque','dir':'down','trainer':'chef_bisque','lines':['Low and slow, bubble and glow! Welcome to Cauldron Conservatory!']}),
 
-  ('simmer_fen', {'id':'ladle_item','x':10,'y':6,'name':'Copper Ladle','sprite':'item_chest','dir':'down','questComplete':'q8_ladle','lines':['Found the Copper Ladle! Received Grand Feast + 600G!']}),
+  ('simmer_fen', {'id':'ladle_item','x':10,'y':6,'name':'Copper Ladle','sprite':'item_chest','dir':'down','questComplete':'q8_ladle','reqStarted':True,'notStartedMsg':'A sunken Copper Ladle! Ask Tinkerer Brothwick in Chowder Crossing if he lost it first.','lines':['Found the Copper Ladle! Received Grand Feast + 600G!']}),
   ('simmer_fen', {'id':'saffron_4','x':17,'y':13,'name':'Rival Saffron','sprite':'saffron','dir':'down','trainer':'rival_4','lines':['My team evolved! Let us test our new heat!']}),
   ('kettle_gorge', {'id':'stock_valve','x':20,'y':6,'name':'Perpetual Valve','sprite':'item_chest','dir':'down','questComplete':'q13_stock','lines':['Tuned the Perpetual Simmer! Received Recipe: Boil Over!']}),
   ('kettle_gorge', {'id':'syn_grunt_gorge','x':16,'y':12,'name':'Syndicate Grunt','sprite':'syndicate_grunt','dir':'down','trainer':'syndicate_grunt_1','lines':['Thank you for your patience! Your recipe is very important to us!']}),
@@ -624,10 +743,11 @@ NAMED_NPCS = [
   ('grand_tasting_hall', {'id':'mochi_npc','x':13,'y':7,'name':'Master Taster Mochi','sprite':'taster_mochi','dir':'down','trainer':'taster_mochi','lines':['Course Three: Palate Cleanser! Cool and sweet!']}),
   ('grand_tasting_hall', {'id':'aurelia_npc','x':13,'y':4,'name':'Champion Chef Aurelia','sprite':'champion','dir':'down','trainer':'champion_aurelia','lines':['Welcome to the Grand Tasting Table! Show me the bond between cook and bEATst!']}),
   ('grand_tasting_hall', {'id':'secret_151_door','x':11,'y':2,'name':'Secret Pantry Door','sprite':'item_chest','dir':'down','action':'secret151','lines':['A shimmering golden pantry door...']}),
+  ('grand_tasting_hall', {'id':'planner_nora','x':10,'y':17,'name':'Banquet Planner Nora','sprite':'villager_2','dir':'right','questGive':'q16_banquet','lines':['Once you reach the Eternal Pantry, report to Banquet Steward Otto for the Eternal Banquet!']}),
 
   ('eternal_pantry', {'id':'inn_eternal','x':12,'y':12,'name':'Starlight Chef','sprite':'inn','dir':'down','action':'heal','lines':['Welcome to the Eternal Pantry! All bEATsts restored!']}),
   ('eternal_pantry', {'id':'mart_eternal','x':19,'y':12,'name':'Eternal Boutique','sprite':'mart','dir':'down','action':'shop','lines':['Eternal Pantry Boutique! Everything unlocked!']}),
-  ('eternal_pantry', {'id':'steward_otto','x':15,'y':8,'name':'Banquet Steward Otto','sprite':'steward_otto','dir':'down','questComplete':'q16_banquet','lines':['Thank you for visiting the Eternal Pantry! Received 2000G + 2x Grand Feast!']}),
+  ('eternal_pantry', {'id':'steward_otto','x':15,'y':8,'name':'Banquet Steward Otto','sprite':'steward_otto','dir':'down','questComplete':'q16_banquet','reqStarted':True,'notStartedMsg':'Speak with Banquet Planner Nora in the Grand Tasting Hall before claiming the Eternal Banquet!','lines':['Thank you for visiting the Eternal Pantry! Received 2000G + 2x Grand Feast!']}),
   ('eternal_pantry', {'id':'reformed_ladle','x':20,'y':15,'name':'Sterling Ladle','sprite':'boss_ladle','dir':'left','lines':['I closed Beige Plate Corp and opened a neighborhood soup cart! Turns out real broth beats synergy!']})
 ]
 
@@ -655,44 +775,45 @@ for mid, sid, sx, sy, msg in SECRET_SPOTS:
     })
 
 # ==============================================================================
-# 9. GENERATE 820+ UNIQUE, NAMED VILLAGERS & REAL DISPLAYED DIALOGUE LINES
+# 9. WIRE INDIVIDUALLY WRITTEN DIALOGUE LINES (NO TEMPLATES) TO NAMED VILLAGERS
 # ==============================================================================
+import dialogue_lines as _dl
+
 FIRST_NAMES = [
   'Clara','Milo','Nora','Gus','Toby','June','Felix','Wren','Otto','Iris','Bram','Tess','Hugo','Vera','Jude','Lena',
-  'Arlo','Cora','Otis','Mina','Saul','Ruby','Ezra','cleo','Theo','Faye','Leon','Rosa','Ivan','Maya','Nils','Gwen',
+  'Arlo','Cora','Otis','Mina','Saul','Ruby','Ezra','Cleo','Theo','Faye','Leon','Rosa','Ivan','Maya','Nils','Gwen',
   'Rory','Alma','Kipp','Zara','Boyd','Talia','Sven','Lola','Dante','Nadia','Paco','Yuki','Hana','Kenji','Sora','Mei'
 ]
-DISHES = [
-  'sourdough','focaccia','brioche','ciabatta','rye toast','panini','baguette','pretzel','croissant','pita',
-  'baozi','gyoza','shumai','pierogi','empanada','onigiri','mochi','ravioli','khinkali','takoyaki',
-  'ramen','udon','pho','lo mein','pad thai','lasagna','spaghetti','soba','macaroni','vermicelli',
-  'chowder','bisque','consomme','miso','borscht','gumbo','minestrone','gazpacho','pho broth','chili'
-]
-OPINION_TEMPLATES = [
-  "Nothing beats {dish} when the crust is still singing from the oven.",
-  "I walked three miles just to smell {dish} simmering in {place}.",
-  "If someone cuts my {dish} unevenly, I politely re-plate it with geometry.",
-  "My grandmother taught me that {dish} needs patience, salt, and zero shortcuts.",
-  "Chrome Fork Syndicate tried to standardize {dish} into a beige cube. No thank you!",
-  "Wild bEATsts in {place} always perk up when they smell fresh {dish}.",
-  "At night, the stars over {place} make {dish} taste twice as cozy.",
-  "Never trust a laminated rating chart over a warm bowl of {dish}.",
-  "Between you and me, {dish} is the true backbone of {region} cuisine.",
-  "I keep a spare Paper Plate in my pocket just in case a {dish} bEATst wanders by."
-]
 
+day_idx = 0
+night_idx = 0
 used_lines = set()
 for m_idx, (mid, mdata) in enumerate(MAPS_DATA.items()):
     mb = mdata['mb']
-    # Find safe walkable spots away from portals & doors
     portal_coords = {(p['x'], p['y']) for p in mdata['portals']} | {(n['x'], n['y']) for n in mdata['npcs']}
+    reach_set = set()
+    if mdata['portals']:
+        p0 = mdata['portals'][0]
+        sx, sy = (15, 10) if mid == 'cruston_town' else (
+            1 if p0['x'] == 0 else (mb.w - 2 if p0['x'] == mb.w - 1 else p0['x']),
+            1 if p0['y'] == 0 else (mb.h - 2 if p0['y'] == mb.h - 1 else (p0['y'] + 1 if mb.get(p0['x'], p0['y']) == 2 else p0['y']))
+        )
+        rq = deque([(sx, sy)])
+        reach_set.add((sx, sy))
+        while rq:
+            rx, ry = rq.popleft()
+            for dx, dy in ((0,1),(0,-1),(1,0),(-1,0)):
+                nx, ny = rx+dx, ry+dy
+                if 0 <= nx < mb.w and 0 <= ny < mb.h and (nx, ny) not in reach_set:
+                    if mb.get(nx, ny) not in SOLID_TILES or mb.get(nx, ny) == 73:
+                        reach_set.add((nx, ny)); rq.append((nx, ny))
     candidates = []
     for y in range(2, mb.h - 2):
         for x in range(2, mb.w - 2):
             if mb.get(x, y) in SOLID_TILES: continue
+            if reach_set and (x, y) not in reach_set: continue
             if any(abs(x - px) + abs(y - py) <= 2 for px, py in portal_coords): continue
             candidates.append((x, y))
-    # Place 4-6 named villagers per overworld/hall/postgame map, 2 per interior
     is_int = mid.endswith('_inn') or mid.endswith('_mart') or mid.endswith('_lab') or mid.endswith('_cafe') or mid.startswith('gym_')
     target_v = 2 if is_int else 5
     step = max(1, len(candidates) // (target_v + 1))
@@ -702,16 +823,14 @@ for m_idx, (mid, mdata) in enumerate(MAPS_DATA.items()):
         role = ['Chef','Baker','Taster','Botanist','Angler','Poet','Courier','Mason','Herbalist','Brewer'][(m_idx + vi) % 10]
         vname = f"{role} {fname}"
         lines = []
-        for li in range(4):
-            dish = DISHES[(m_idx * 5 + vi * 3 + li * 7) % len(DISHES)]
-            tmpl = OPINION_TEMPLATES[(m_idx + vi * 2 + li * 3) % len(OPINION_TEMPLATES)]
-            line = tmpl.format(dish=dish, place=mdata['name'], region=mdata['region'])
-            if line not in used_lines:
-                used_lines.add(line)
-                lines.append(line)
-        if not lines:
-            lines.append(f"Greetings from {mdata['name']}! Cooking here in {mdata['region']} is always lively!")
-        night_line = f"Late-night {DISHES[(m_idx + vi) % len(DISHES)]} in {mdata['name']} hits different under the moon!"
+        for _ in range(3):
+            if day_idx < len(_dl.DAY_LINES):
+                l = _dl.DAY_LINES[day_idx]
+                day_idx += 1
+                used_lines.add(l)
+                lines.append(l)
+        night_line = _dl.NIGHT_LINES[night_idx] if night_idx < len(_dl.NIGHT_LINES) else _dl.DAY_LINES[day_idx % len(_dl.DAY_LINES)]
+        night_idx += 1
         used_lines.add(night_line)
         mdata['npcs'].append({
             'id': f'npc_{mid}_{vi}',
@@ -726,46 +845,6 @@ for m_idx, (mid, mdata) in enumerate(MAPS_DATA.items()):
 # ==============================================================================
 # 10. SELF-VERIFY PORTAL REACHABILITY & TILE-ROLE SIMILARITY
 # ==============================================================================
-
-# Ensure every map has unique dimensions or distinct tile-role distribution (<=50% role similarity across ALL pairs!)
-def diversify_maps():
-    reg_roles = {
-        'Breadlands':  [10, 12, 17, 19, 4],
-        'Steambay':    [22, 24, 29, 31, 4],
-        'Noodleridge': [34, 36, 41, 43, 4],
-        'Brothbasin':  [46, 48, 56, 54, 4],
-        'TastingHall': [58, 59, 0,  19, 4],
-        'Postgame':    [61, 59, 58, 19, 4]
-    }
-    # Role indices: 0:ground, 1:path, 2:floor, 3:decoration, 4:mat (all walkable!)
-    # Assign each map a unique primary role + secondary role + spatial hash
-    import hashlib
-    for m_idx, (mid, md) in enumerate(MAPS_DATA.items()):
-        mb = md['mb']
-        reg = md['region']
-        roles = reg_roles.get(reg, [10, 12, 0, 19, 4])
-        # Use 4 distinct roles for each map with per-map weighted spatial zones
-        h = int(hashlib.md5(mid.encode()).hexdigest(), 16)
-        r_order = list(roles)
-        # Rotate & permute deterministically per map
-        shift = m_idx % 5
-        r_order = r_order[shift:] + r_order[:shift]
-        if (h >> 4) % 2: r_order[0], r_order[1] = r_order[1], r_order[0]
-        portal_coords = {(p['x'], p['y']) for p in md['portals']} | {(p['tx'], p['ty']) for p in md['portals']}
-        npc_coords = {(n['x'], n['y']) for n in md['npcs']}
-        for y in range(2, mb.h - 2):
-            for x in range(2, mb.w - 2):
-                cur = mb.get(x, y)
-                if cur in SOLID_TILES or cur in (2, 4, 6, 7, 9, 11, 23, 35, 47, 62, 65, 66, 67, 68, 69, 70): continue
-                if (x, y) in portal_coords or (x, y) in npc_coords: continue
-                hv = ((x * (3 + (h % 7))) + (y * (5 + ((h >> 3) % 7))) + ((x * y) % (3 + (m_idx % 5)))) % 10
-                if hv < 4: mb.set(x, y, r_order[0])
-                elif hv < 7: mb.set(x, y, r_order[1])
-                elif hv < 9: mb.set(x, y, r_order[2])
-                else: mb.set(x, y, r_order[3])
-
-diversify_maps()
-
 
 def verify_world():
     # 1. BFS across all maps & portals from cruston_town (15, 10)
