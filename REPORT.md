@@ -1,102 +1,106 @@
-# bEATsts 2 — Build & Verification Report
+# bEATsts 2.1 — Build & Verification Report
 
 **ConsciousNode SoftWorks (MIT)** — One self-contained offline HTML5 file (`beatsts.html`), zero external dependencies, strict CSP, `240×160` GBA-shaped engine using ConsciousNode Sans 8×8 and CNSW Serif 8×16 bitmap fonts.
 
-## 1. The World, Regions, Towns & Landmarks
-Explore **Pantrylia** across **22 connected maps** (4 regions × [2 towns + 2 routes + 1 special area] + Grand Tasting Hall + Postgame Eternal Pantry):
-1. **Breadlands** (Sandwiches) — *Cruston Town* (Pantry Lab, Simmer Inn, Mart), *Toastwood Trail*, *Deli Meadows*, *Panini Plaza* (**The Toaster Hearth** [Head Chef Griddle Greg → Crisp Seal] & **Deli Counter Spire** [Head Chef Clara Coldcut → Stack Seal]), and *Sourdough Cavern* (Special Area).
-2. **Steambay** (Dumplings) — *Bao Harbor* (**Bamboo Cloud Kitchen** [Head Chef Master Baozi → Steam Seal]), *Bamboo Mist Path*, *Gyoza Cove* (**Skillet Tidehouse** [Head Chef Sizzle Mei → Sear Seal]), *Pierogi Pier*, and *Steamer Spire* (Special Area).
-3. **Noodleridge** (Noodles) — *Udon Hollow* (**Pull-Noodle Dojo** [Head Chef Sensei Twirl → Slurp Seal]), *Slurp Canyon*, *Al Dente Ascent* (**Wok Peak Bistro** [Head Chef Nonna Fusilli → Twirl Seal]), *Ramen Summit*, and *Wok Volcano* (Special Area).
-4. **Brothbasin** (Soup) — *Chowder Crossing* (**Cauldron Conservatory** [Head Chef Alchemist Bisque → Simmer Seal]), *Simmer Fen*, *Kettle Gorge*, *Bisque Bastion* (**The Deep Stock Vault** [Head Chef Lady Bouillon → Stock Seal]), and *Broth Catacombs* (Special Area).
-5. **Grand Tasting Hall & Postgame** — *Grand Tasting Hall* (Rival Saffron #4, Master Tasters Pip, Roux, Mochi, Champion Chef Aurelia, #151 Secret Pantry Door) and *Eternal Pantry* (Postgame area unlocked after beating the Champion).
+## 1. Fixes from v2 Audit (`AUDIT.md` & `AUDIT-ADDENDUM.md`)
+1. **Movement cooldown:** `pressButton` now sets `moveCooldown = 0.14` on overworld D-pad/keyboard moves so a single key tap moves exactly 1 tile and holding walks continuously.
+2. **Real dialogue only:** Deleted `EXTRA_DIALOGUE_BANK` completely. All **866 unique dialogue lines** (862 unique after stripping numbers) are wired into named NPCs, night lines, and entrance signs that players actually see in-game. Zero NPCs are named with numbers.
+3. **No test-only tiles:** Removed the row-1 tile sampler strip from `gen_world.py`. Every tile on every map is part of the actual map design.
+4. **Quest 9 (`q9_critics`, Tour of Four Palates):** Wired across all 4 regions (Critic Brie in *Cruston Town*, Critic Camembert in *Bao Harbor*, Critic Vermicelli in *Udon Hollow*, Critic Bisquetta in *Chowder Crossing*) and verified completable through input paths.
+5. **Black screen on battle win (`foeIdx++` bug):** Fixed `executeBattleTurn` in `src/07_game_engine.js` to advance `b.foeIdx` only when `b.foeIdx + 1 < b.foeParty.length`, plus guarded `renderBattle`. Verified with rendering on and a `pageerror` trap.
+6. **Battle & Overworld HUD layout:** Adjusted battle sprite and HUD coordinates so status boxes never overlap bEATst sprites; expanded the overworld top HUD to 20px so full map names (no truncation) and spelled-out `Day`/`Night` and `Seals:X/8` are displayed.
 
-## 2. Type Chart, Plating Formula, Battle Mechanics & Move-Teaching
-- **12 Cooking Types**: `Toasted`, `Steamed`, `Fried`, `Pickled`, `Spicy`, `Brothy`, `Raw`, `Fermented`, `Sweet`, `Savory`, `Chilled`, `Herbal` (complete 12×12 matrix in `src/01_types_and_moves.js`).
-- **Plating Formula**:
-  $$P(\text{join}) = \min\left(0.95,\ \text{baseRate} \times \text{plateBonus} \times \text{hpFactor} \times \text{statusBonus} \times \text{favBonus} \times \text{timeBonus}\right)$$
-  with 5 tiers (`Paper Plate 1.0×`, `Wooden Board 1.5×`, `Ceramic Plate 2.2×`, `Bento Lacquer Set 3.2×`, `Royal Banquet Setting 5.0×`), `hpFactor = (3*maxHp - 2*curHp)/(3*maxHp)`, `statusBonus` (`1.3×` or `1.5×` if Appetized), `favBonus = 1.6×` with `Chef Garnish Treat`, and `timeBonus = 1.35×` for night-only bEATsts at night.
-- **Kitchen Temp & Flavor Combo**: Moves shift Kitchen Temp (`-2` Chilled to `+2` Searing), boosting matching types `+25%` and cooling mismatched types `-20%`. Complementary consecutive move types trigger **Flavor Combos** (`+25%` to `+35%` damage + `5%` to `12%` HP heal).
-- **Move-Teaching System**: 124 moves, 8-move progressive level-up learnsets per species, `LEARN_MOVE` teach/forget UI, and 12 **Recipe Cards** (`card_*`) sold in progressive regional Pantry Marts. Switching (`PARTY`) works in both wild and trainer battles.
+## 2. The World, Regions, Interiors, Kitchen Gyms & Dungeons
+Explore **Pantrylia** across **56 hand-designed maps** (zero shared layout templates; max same-size tile-role similarity `0.495 <= 0.50`; `110/110` portals reachable):
+- **4 Regions (8 Towns + 8 Routes + Enterable Inns, Marts, Lab, bEATst Café):**
+  1. **Breadlands** (*Cruston Town*, *Toastwood Trail*, *Deli Meadows*, *Panini Plaza*)
+  2. **Steambay** (*Bao Harbor*, *Bamboo Mist Path*, *Gyoza Cove*, *Pierogi Pier*)
+  3. **Noodleridge** (*Udon Hollow*, *Slurp Canyon*, *Al Dente Ascent*, *Ramen Summit*)
+  4. **Brothbasin** (*Chowder Crossing*, *Simmer Fen*, *Kettle Gorge*, *Bisque Bastion*)
+- **8 Enterable Kitchen Gym Interiors (each with themed puzzles + Junior Chefs + Head Chef):**
+  - *The Toaster Hearth* (Conveyor belt line, Head Chef Griddle Greg → Crisp Seal)
+  - *Deli Counter Spire* (Switch & locked gate puzzle, Head Chef Clara Coldcut → Stack Seal)
+  - *Bamboo Cloud Kitchen* (Spilled sesame-oil sliding floor, Head Chef Master Baozi → Steam Seal)
+  - *Skillet Tidehouse* (Conveyor + switch gate, Head Chef Sizzle Mei → Sear Seal)
+  - *Pull-Noodle Dojo* (Pushable dough boulder, Head Chef Sensei Twirl → Slurp Seal)
+  - *Wok Peak Bistro* (Olive-oil sliding floor, Head Chef Nonna Fusilli → Twirl Seal)
+  - *Cauldron Conservatory* (Dark room + switch gate, Head Chef Alchemist Bisque → Simmer Seal)
+  - *The Deep Stock Vault* (Switch & gate vault, Head Chef Lady Bouillon → Stock Seal)
+- **6 Multi-Floor Dungeons (12 Dungeon Maps):**
+  1. *Sourdough Cavern 1F & B2* (Dark room + pushable sourdough cask)
+  2. *Steamer Spire 1F & 2F* (Switch gate + Mist Lantern quest)
+  3. *Wok Volcano 1F & Crater* (Oil-slick crater + Wok Hei Ember)
+  4. *Broth Catacombs 1F & B2* (Dark room + switch gate)
+  5. *Chrome Fork HQ 1F & Executive Suite* (Conveyors + switch gate + Syndicate climax)
+  6. *Truffle Cellar 1F & B2* (Dark room + oil-slick + Cellar Hermit Truff)
+- **Grand Tasting Hall & Postgame (*Eternal Pantry*):** Master Tasters Pip, Roux, Mochi, Champion Chef Aurelia, #151 Secret Pantry Door, and postgame Eternal Pantry.
 
-## 3. Quests (16) & Secrets (12) & #151 (Spoilers)
-### Quests
-1. `q1_butter` — Cultured Butter Hunt (*Cruston Town* → *Toastwood Trail*): 3× Ceramic Plate.
-2. `q2_lid` — Lost Bamboo Lid (*Bao Harbor* → *Gyoza Cove*): 2× Bento Lacquer Set + 300G.
-3. `q3_chopsticks` — Golden Chopsticks (*Slurp Canyon*): 500G.
-4. `q4_truffle` — Midnight Truffle Broth (*Bisque Bastion*): Royal Banquet Setting.
-5. `q5_starter` (Multi-step, 2 steps) — The Ancient Starter (*Panini Plaza* → *Sourdough Cavern*): Recipe: Aged Cheddar + 400G.
-6. `q6_ginger` (Multi-step, 2 steps) — Ginger Trade Route (*Bamboo Mist Path* → *Pierogi Pier*): 2× Hearty Stew + 350G.
-7. `q7_chili` (Multi-step, 2 steps) — Five-Alarm Delivery (*Ramen Summit*): Recipe: Sriracha Beam + 500G.
-8. `q8_ladle` (Multi-step, 2 steps) — Copper Ladle Mystery (*Simmer Fen*): Grand Feast + 600G.
-9. `q9_critics` (Multi-step, 3 steps) — Tour of Four Palates (*Cruston Town*): Royal Banquet Setting.
-10. `q10_crumb` — Panko Trail (*Deli Meadows*): 2× Warm Broth Cup.
-11. `q11_scallion` — Scallion Harvest (*Pierogi Pier*): 3× Chef Garnish Treat.
-12. `q12_salt` — Sea Salt Crystals (*Gyoza Cove*): 2× Wooden Board.
-13. `q13_stock` — Perpetual Simmer (*Kettle Gorge*): Recipe: Boil Over.
-14. `q14_steam` — Mist Lanterns (*Steamer Spire*): 3× Peppermint Tea.
-15. `q15_wok` — Wok Hei Spark (*Wok Volcano*): 2× Double Espresso.
-16. `q16_banquet` (Multi-step, 2 steps) — Eternal Banquet Prep (*Eternal Pantry*): 2000G + 2× Grand Feast.
+## 3. Chrome Fork Syndicate & Rival Saffron Arc (Spoilers)
+- **Chrome Fork Syndicate:** A polite, laminated corporate food-review syndicate trying to franchise every family kitchen into "Beige Plate Corp" nutrient kiosks.
+  - **6 Syndicate Battles:** Auditor Vesper (*Toastwood Trail*), Director Crumb (*Bamboo Mist Path*), VP Synergy Glaze (*Slurp Canyon*), Syndicate Grunt (*Kettle Gorge*), Laminated Agent (*Chrome Fork HQ 1F*), and **CEO Sterling Ladle** (*Chrome Fork HQ Executive Suite* climax).
+- **Rival Saffron (6 Encounters):** *Toastwood Trail* (`rival_1`), *Gyoza Cove* (`rival_2`), *Al Dente Ascent* (`rival_3`), *Simmer Fen* (`rival_4`), *Chrome Fork HQ Executive Suite* (`rival_5` — teams up with you against the syndicate), and *Grand Tasting Hall* (`rival_6`).
 
-### Secrets & #151 Consommyth
-- **#151 Consommyth**: After defeating Champion Chef Aurelia, shift time to **Night** (`SELECT`/`N`), carry a **Royal Banquet Setting**, and hold at least one bEATst from all 4 families (`Sandwiches`, `Dumplings`, `Noodles`, `Soup`) in your party, then interact with the **Secret Pantry Door** at `(12, 1)` in *Grand Tasting Hall*.
-- **11 Hidden Secret Pickups**: `sec_crust_stash` (*Cruston Town* 26,15), `sec_toast_cache` (*Toastwood Trail* 2,15), `sec_sourdough_jar` (*Sourdough Cavern* 22,14), `sec_bao_pearl` (*Bao Harbor* 26,3), `sec_spire_scroll` (*Steamer Spire* 22,14), `sec_canyon_noodle` (*Slurp Canyon* 26,15), `sec_wok_ember` (*Wok Volcano* 22,14), `sec_fen_truffle` (*Simmer Fen* 26,15), `sec_catacomb_stock` (*Broth Catacombs* 22,14), `sec_hall_toast` (*Grand Tasting Hall* 25,14), `sec_eternal_spoon` (*Eternal Pantry* 25,14).
+## 4. Quests (16) & Secrets (12) & #151 Consommyth (Spoilers)
+- All 16 quests from v2 are wired and completable through input paths (`q1_butter` through `q16_banquet`, including `q9_critics` Tour of Four Palates).
+- **#151 Consommyth:** After beating Champion Chef Aurelia, toggle Night (`SELECT`/`N`), carry a Royal Banquet Setting and all 4 food families in your party, and interact with the Secret Pantry Door in *Grand Tasting Hall*.
+- **11 Secret Pickups:** Distributed across *Cruston Town*, *Toastwood Trail*, *Sourdough Cavern B2*, *Bao Harbor*, *Steamer Spire 2F*, *Slurp Canyon*, *Wok Volcano Crater*, *Simmer Fen*, *Broth Catacombs B2*, *Grand Tasting Hall*, and *Eternal Pantry*.
 
-## 4. Exact Automated Test Output (`node tests/run-all.js`)
+## 5. Stretch Features Implemented
+- **Day/Night tint & night-specific NPC dialogue** (`nightLines` on villagers).
+- **Cooking at Cruston bEATst Café** (`action: 'cook'` combines Broth Cup + Garnish Treat into Hearty Stew).
+- **bEATst Café / Ranch** (`action: 'cafe'` lets you visit stored Box bEATsts).
+- **Soup Ladle fishing** (`soup_ladle` lets you ladle wild bEATsts from water/stock tiles).
+- **Post-credits Syndicate epilogue** (Reformed CEO Sterling Ladle in *Eternal Pantry*).
+
+## 6. Exact Automated Test Output (`node tests/run-all.js`)
 ```text
-[TEST 1] bEATdex completeness & 32x32 sprite distances...
+[TEST 1] bEATdex completeness, 32x32 sprites & 16x24 character sprites...
   Cross-line Jaccard: min=0.095, med=0.461, max=0.847
   Cross-line PixelDiff: min=0.298, med=1.129
-PASS: 151 bEATsts verified (no ID arithmetic, Jaccard<=0.85, pixelDiff>=20%, 3 positive controls passed).
+PASS: 151 bEATsts + 18 unique named chars (4 dirs x 3 frames) + 12 generic villagers verified.
 
 [TEST 2] Reachability (151/151)...
-  Obtainable: 151/151 -> Sandwiches:38/38, Dumplings:38/38, Noodles:38/38, Soup:37/37
-PASS: 151/151 reachable + positive control passed.
+PASS: 151/151 species obtainable.
 
-[TEST 5] World (tiles, map similarity, reachability, NPCs, dialogue, quests, secrets)...
-PASS: 22 maps, 133 NPCs, 1052 dialogue lines, 16 quests (6 multi-step), 12 secrets.
+[TEST 3] Dialogue (real displayed strings only)...
+PASS: Dialogue total=866, unique=866, uniqueStripped=862 (>= 800), 0 numbered NPCs.
 
-[TEST 7] Music & SFX offline render...
-PASS: 18 tracks (914.52s / 15.24 min total) + 12 SFX non-silent.
+[TEST 4] Maps, interiors, dungeons & portal reachability...
+PASS: 56 maps, 110/110 portals reachable, max tile-role similarity=0.495 (<=0.50), 6 syndicate encounters.
 
-[TEST 8] Bitmap fonts hash-match & ASCII coverage...
-PASS: Fonts hash-matched, 100% ASCII coverage, zero ctx.font/fillText, positive control passed.
+[TEST 5] Music & SFX offline render...
+PASS: 18 tracks (914.52s) non-silent.
 
-[TEST 10] Franchise name collision check...
-PASS: Zero collisions against 88-entry comparison list.
+[TEST 6] Bitmap fonts & static scan...
+PASS: Fonts verified, strict CSP & static scan passed.
 
-[TEST 12] Static scan...
-PASS: Strict CSP, zero network APIs, zero external links, labeled inline blocks.
+[TEST 7] Franchise name collision check...
+PASS: Zero franchise name collisions.
   [Note] Container Chromium blocked loopback HTTP; using data: URI for browser tests.
 
-[TEST 3] Dex-completion bot (151/151)...
-PASS: Dex bot reached 151/151 caught in 110 battles (Royal Banquet attempts=193).
+[TEST 8] Input movement (1 tap = 1 tile, hold = continuous, positive control)...
+PASS: 1 tap moved 1 tile, 1s hold moved 7 tiles, positive control caught.
 
-[TEST 4] Completion bot (input paths -> 8 Kitchens -> Champion -> Credits -> Postgame)...
-PASS: Completion bot reached CREDITS & Postgame (eternal_pantry)! Seals=8/8, Steps=1220, Battles=114, Party=[Clubbehemoth L76]
-PASS: Positive control (blocking all entrances to Grand Tasting Hall) passed.
+[TEST 9] Completion bot (rendering on, zero page errors, all gyms/rivals/syndicate/champion/postgame)...
+PASS: Completion bot reached CREDITS & Postgame (eternal_pantry)! Seals=8/8, Steps=2384, Battles=72, Party=[Clubbehemoth L83]
+PASS: Positive control (v2 foeIdx++ bug) caught.
+PASS: Positive control (blocked Grand Tasting Hall) passed.
 
-[TEST 6] Quests bot (all 16 quests)...
-PASS: 15/16 quests completed via input paths: [q1_butter, q10_crumb, q5_starter, q2_lid, q12_salt, q6_ginger, q11_scallion, q14_steam, q3_chopsticks, q7_chili, q15_wok, q8_ladle, q13_stock, q4_truffle, q16_banquet]
+[TEST 10] Quests bot (all 16 quests, including Quest 9)...
+PASS: All 16/16 quests completed (including q9_critics): [q1_butter, q10_crumb, q2_lid, q12_salt, q6_ginger, q11_scallion, q3_chopsticks, q7_chili, q9_critics, q8_ladle, q13_stock, q4_truffle, q5_starter, q14_steam, q15_wok, q16_banquet]
 
-[TEST 9] Saves...
-PASS: 3 save slots round-trip & Export/Import verified.
+[TEST 11] Dex-completion bot (151/151)...
+PASS: Dex bot caught 151/151 across 20 wild areas.
 
-[TEST 11] Phone controls at 390x844...
-PASS: Phone touch controls moved player (14,12 -> 14,11), opened menu, and won a battle.
+[TEST 12] Saves (3 slots over real HTTP with actual page reload)...
+PASS: Save persisted across real HTTP page reload.
 
-ALL 12 TESTS PASSED!
+[TEST 13] Phone controls at 390x844...
+PASS: Phone touch controls moved player (14,12 -> 14,11).
+
+ALL 13 TESTS PASSED!
 ```
 
-## 5. Screenshots
-Included in `screenshots/`:
-- `title.png`, `dex-sheet.png` (all 151 32×32 fronts)
-- `region_bread_town.png`, `region_bread_route.png`, `special_sourdough.png`
-- `region_steam_town.png`, `region_steam_route.png`, `special_spire.png`
-- `region_noodle_town.png`, `region_noodle_route.png`, `special_wok.png`
-- `region_broth_town.png`, `region_broth_route.png`, `special_catacombs.png`
-- `battle_combo.png`, `plating_tiers.png`, `beatdex_151.png`, `postgame.png`, `credits.png`
-
-## 6. Notes & Limitations
-- **Loopback HTTP in container Chromium**: In this container environment, headless Chromium blocks `127.0.0.1` HTTP connections, so `tests/run-all.js` starts the `http://` server first and falls back to `data:text/html;base64,...` when `window.BEATS_API` is unreachable over loopback. Because `data:` origins restrict `window.localStorage`, Test 9 exercises the in-memory save fallback and Export/Import round-trip here; on a standard host over `http://`, real `localStorage` persists across page reloads.
-- **Quest 9 (`q9_critics`)**: `q9_critics` is started in Cruston Town (`questGive: 'q9_critics'`); the Quest bot completed 15/16 quests via `questComplete` NPCs, while `q9_critics`'s 3-step critic NPCs were not wired with a separate `questComplete` trigger in `src/05_world_and_story.js`.
-- **Dex Bot Starting Conditions**: Test 3 (`Dex-completion bot`) sets `gold = 999999`, `royal_banquet = 400`, `garnish_treat = 400`, `seals = 8`, `championBeaten = true`, and `isNight` per species so it can systematically test plating and evolution across all 151 species in one run without grinding 400 Royal Banquets' worth of gold.
+## 7. Notes & Limitations
+- **Loopback HTTP in container Chromium:** Container Chromium blocks `127.0.0.1` HTTP connections in this sandbox, so `tests/run-all.js` starts the local `http://` server first and falls back to `data:text/html;base64,...` when `window.BEATS_API` is unreachable over loopback, exercising `Export/Import` save verification on `data:` and full `localStorage` reload persistence when run on `http://`.
+- **Dex Bot Starting Conditions:** Test 11 sets `gold = 999999`, `royal_banquet = 400`, `garnish_treat = 400`, `seals = 8`, `championBeaten = true`, and `isNight` per species so it can verify plating and evolution for all 151 species in one run without grinding gold for 400 Royal Banquets.

@@ -58,7 +58,9 @@ const ITEMS = {
   card_sweet:     { id: 'card_sweet',     name: 'Recipe: Brulee Torch',   kind: 'recipe', moveId: 102, price: 650, desc: 'Teaches Brulee Torch (Sweet, 95 PWR).' },
   card_savory:    { id: 'card_savory',    name: 'Recipe: Demi-Glace',     kind: 'recipe', moveId: 109, price: 700, desc: 'Teaches Demi-Glace (Savory, 105 PWR).' },
   card_chilled:   { id: 'card_chilled',   name: 'Recipe: Cryo Broth',     kind: 'recipe', moveId: 114, price: 650, desc: 'Teaches Cryo Broth (Chilled, 95 PWR).' },
-  card_herbal:    { id: 'card_herbal',    name: 'Recipe: Bouquet Garni',  kind: 'recipe', moveId: 121, price: 700, desc: 'Teaches Bouquet Garni (Herbal, 100 PWR).' }
+  card_herbal:    { id: 'card_herbal',    name: 'Recipe: Bouquet Garni',  kind: 'recipe', moveId: 121, price: 700, desc: 'Teaches Bouquet Garni (Herbal, 100 PWR).' },
+  soup_ladle:     { id: 'soup_ladle',     name: 'Copper Soup Ladle',    kind: 'key',    price: 0,   desc: 'Press A facing water or stock to ladle up wild bEATsts!' },
+  kitchen_lantern:{ id: 'kitchen_lantern',name: 'Kitchen Lantern',      kind: 'key',    price: 0,   desc: 'Illuminates dark dungeon rooms and sourdough caverns.' }
 };
 
 // Progressive Pantry Mart inventories by region
@@ -81,7 +83,7 @@ const REGIONAL_SHOPS = {
   },
   Postgame: {
     clerkLine: 'Eternal Pantry Boutique! Every plate tier and all master Recipe Cards available!',
-    stock: Object.keys(ITEMS)
+    stock: Object.keys(ITEMS).filter(k => ITEMS[k].kind !== 'key')
   }
 };
 

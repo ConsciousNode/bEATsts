@@ -84,6 +84,11 @@ const Game = {
   learnCursor: 0,
   pendingLearn: null, // { mon, moveId, returnScreen }
   starterIdx: 0,
+  lookIdx: 0,
+  walkFrame: 0,
+  bannerTimer: 0,
+  bannerText: '',
+  transitionTimer: 0,
   dialogQueue: [],
   dialogCallback: null,
   battle: null,
@@ -166,6 +171,8 @@ const Game = {
       x: 14,
       y: 12,
       dir: 'up',
+      playerLook: 'player_' + (this.lookIdx || 0),
+      switches: {},
       seals: [],
       defeatedTrainers: [],
       quests: {},
@@ -179,7 +186,9 @@ const Game = {
         paper_plate: 5,
         wooden_board: 2,
         broth_cup: 3,
-        garnish_treat: 2
+        garnish_treat: 2,
+        soup_ladle: 1,
+        kitchen_lantern: 1
       }
     };
     this.saveToSlot(slotIdx);
@@ -350,7 +359,10 @@ const Game = {
 
     if (this.screen === 'STARTER') {
       const starters = [1, 39, 77, 115];
-      if (btn === 'LEFT' || btn === 'RIGHT') {
+      if (btn === 'UP' || btn === 'DOWN') {
+        AudioEngine.playSfx('menu_move');
+        this.lookIdx = (this.lookIdx + (btn === 'DOWN' ? 1 : 2)) % 3;
+      } else if (btn === 'LEFT' || btn === 'RIGHT') {
         AudioEngine.playSfx('menu_move');
         this.starterIdx = (this.starterIdx + (btn === 'RIGHT' ? 1 : 3)) % 4;
       } else if (btn === 'A') {
@@ -405,6 +417,7 @@ const Game = {
         this.interactAhead();
       } else if (['UP','DOWN','LEFT','RIGHT'].includes(btn)) {
         this.tryMove(btn.toLowerCase());
+        this.moveCooldown = 0.14;
       }
       return;
     }
@@ -549,20 +562,25 @@ const Game = {
     }
   },
 
-  tryMove(dir) {
+  tryMove(dir, isSlide = false) {
     if (!this.state) return;
     this.state.dir = dir;
     const dx = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
     const dy = dir === 'up' ? -1 : dir === 'down' ? 1 : 0;
-    const nx = this.state.x + dx;
-    const ny = this.state.y + dy;
+    let nx = this.state.x + dx;
+    let ny = this.state.y + dy;
     const map = MAPS[this.state.mapId];
     if (!map) return;
+    const mw = map.w || 30, mh = map.h || 18;
 
     const portal = (map.portals || []).find(p => p.x === nx && p.y === ny);
     if (portal) {
       if (portal.reqSeals && this.state.seals.length < portal.reqSeals) {
         this.showDialog(`This path requires ${portal.reqSeals} Kitchen Seals! You have ${this.state.seals.length}.`);
+        return;
+      }
+      if (portal.reqFlag && !(this.state.quests && this.state.quests[portal.reqFlag])) {
+        this.showDialog(portal.reqMsg || 'This path is currently locked!');
         return;
       }
       if (portal.reqChampion && !this.state.championBeaten) {
@@ -573,19 +591,87 @@ const Game = {
       this.state.mapId = portal.to;
       this.state.x = portal.tx;
       this.state.y = portal.ty;
+      const destMap = MAPS[portal.to];
+      this.bannerText = destMap ? destMap.name : portal.to;
+      this.bannerTimer = 2.0;
+      this.transitionTimer = 0.22;
       this.playMapMusic();
       return;
     }
 
-    if (nx < 0 || nx >= 30 || ny < 0 || ny >= 18) return;
-    const tile = map.grid[ny * 30 + nx];
-    if (SOLID_TILES.has(tile)) return;
-    if ((map.npcs || []).some(n => n.x === nx && n.y === ny && !this.isNpcHidden(n))) return;
+    if (nx < 0 || nx >= mw || ny < 0 || ny >= mh) return;
+    let tile = map.grid[ny * mw + nx];
+
+    // One-way south ledge (tile 65): jump down 2 tiles if moving down
+    if (tile === 65) {
+      if (dir === 'down' && ny + 1 < mh && !SOLID_TILES.has(map.grid[(ny + 1) * mw + nx])) {
+        ny = ny + 1;
+        tile = map.grid[ny * mw + nx];
+      } else {
+        return;
+      }
+    }
+
+    // Locked gate (tile 73): open if map switch is active
+    if (tile === 73) {
+      if (!(this.state.switches && this.state.switches[map.id])) return;
+    } else if (SOLID_TILES.has(tile)) {
+      return;
+    }
+
+    // Pushable block NPC check
+    const blockingNpc = (map.npcs || []).find(n => n.x === nx && n.y === ny && !this.isNpcHidden(n));
+    if (blockingNpc) {
+      if (blockingNpc.pushable) {
+        const bx = nx + dx, by = ny + dy;
+        if (bx >= 0 && bx < mw && by >= 0 && by < mh) {
+          const bTile = map.grid[by * mw + bx];
+          const bOccupied = (map.npcs || []).some(n => n.x === bx && n.y === by && !this.isNpcHidden(n));
+          if (!SOLID_TILES.has(bTile) && bTile !== 73 && !bOccupied) {
+            blockingNpc.x = bx;
+            blockingNpc.y = by;
+            AudioEngine.playSfx('menu_move');
+          } else {
+            return;
+          }
+        } else {
+          return;
+        }
+      } else {
+        return;
+      }
+    }
 
     this.state.x = nx;
     this.state.y = ny;
     this.state.steps++;
+    this.walkFrame = this.walkFrame === 1 ? 2 : 1;
     if (this.state.steps % 40 === 0) this.state.isNight = !this.state.isNight;
+
+    // Floor switch (tile 9)
+    if (tile === 9) {
+      if (!this.state.switches) this.state.switches = {};
+      if (!this.state.switches[map.id]) {
+        this.state.switches[map.id] = true;
+        AudioEngine.playSfx('level_up');
+        this.showDialog('Click! A locked gate clicked open nearby!');
+        return;
+      }
+    }
+
+    // Conveyors (67:E, 68:W, 69:N, 70:S) and Spilled Oil/Ice (66)
+    if (!isSlide) {
+      let slideSteps = 0;
+      while (slideSteps++ < 12) {
+        const curTile = map.grid[this.state.y * mw + this.state.x];
+        if (curTile === 67) this.tryMove('right', true);
+        else if (curTile === 68) this.tryMove('left', true);
+        else if (curTile === 69) this.tryMove('up', true);
+        else if (curTile === 70) this.tryMove('down', true);
+        else if (curTile === 66) this.tryMove(this.state.dir, true);
+        else break;
+      }
+    }
 
     // Tall grass tiles: 11 (Bread), 23 (Steam), 35 (Noodle), 47 (Broth), 62 (Postgame)
     if ([11, 23, 35, 47, 62].includes(tile) && map.wildPool && map.wildPool.length > 0) {
@@ -610,8 +696,25 @@ const Game = {
     const dy = this.state.dir === 'up' ? -1 : this.state.dir === 'down' ? 1 : 0;
     const tx = this.state.x + dx;
     const ty = this.state.y + dy;
+    const mw = map.w || 30, mh = map.h || 18;
     const npc = (map.npcs || []).find(n => n.x === tx && n.y === ty && !this.isNpcHidden(n));
-    if (!npc) return;
+    if (!npc) {
+      if (tx >= 0 && tx < mw && ty >= 0 && ty < mh) {
+        const tile = map.grid[ty * mw + tx];
+        if (tile === 3) {
+          const sign = (map.signs || []).find(s => s.x === tx && s.y === ty);
+          this.showDialog(sign ? sign.text : `${map.name} - Welcome to ${map.region}!`);
+          return;
+        }
+        if ([13, 25, 37, 49].includes(tile) && (this.state.bag.soup_ladle || 0) > 0 && map.wildPool && map.wildPool.length > 0) {
+          const pick = map.wildPool[Math.floor(this.rng() * map.wildPool.length)];
+          const lv = pick[1] + Math.floor(this.rng() * (pick[2] - pick[1] + 1));
+          this.showDialog('You dipped the Soup Ladle into the shimmering water...', () => this.startWildBattle(pick[0], lv));
+          return;
+        }
+      }
+      return;
+    }
 
     if (npc.action === 'heal') {
       this.healParty();
@@ -622,6 +725,27 @@ const Game = {
     if (npc.action === 'shop') {
       this.shopCursor = 0;
       this.screen = 'SHOP';
+      return;
+    }
+    if (npc.action === 'cook') {
+      if ((this.state.bag.broth_cup || 0) > 0 && (this.state.bag.garnish_treat || 0) > 0) {
+        this.state.bag.broth_cup--;
+        this.state.bag.garnish_treat--;
+        this.state.bag.hearty_stew = (this.state.bag.hearty_stew || 0) + 1;
+        AudioEngine.playSfx('level_up');
+        this.showDialog('Simmered Broth Cup + Garnish Treat into a fresh Hearty Stew!');
+      } else {
+        this.showDialog('Stove Chef: Bring 1 Broth Cup and 1 Garnish Treat to cook a Hearty Stew!');
+      }
+      return;
+    }
+    if (npc.action === 'cafe') {
+      const cnt = (this.state.box || []).length;
+      if (cnt === 0) this.showDialog('bEATst Cafe: Your stored bEATsts will relax here once your party is full!');
+      else {
+        const names = this.state.box.slice(0, 4).map(m => m.nickname).join(', ');
+        this.showDialog(`bEATst Cafe (${cnt} resting): ${names} are happily nibbling crumbs!`);
+      }
       return;
     }
     if (npc.action === 'secret151') {
@@ -679,7 +803,8 @@ const Game = {
       this.showDialog(['Chef Brotholomew: 151/151!! You have befriended every bEATst in Pantrylia!', 'Accept the Grand Culinary Diploma of ConsciousNode!']);
       return;
     }
-    this.showDialog((npc.lines || ['Hello!']).map(l => `${npc.name}: ${l}`));
+    const useLines = (this.state.isNight && npc.nightLines) ? npc.nightLines : (npc.lines || ['Hello!']);
+    this.showDialog(useLines.map(l => `${npc.name}: ${l}`));
   },
 
   grantQuestReward(qid) {
@@ -739,6 +864,7 @@ const Game = {
     });
     const activeIdx = Math.max(0, this.state.party.findIndex(m => m.hp > 0));
     const music = trainer.id.startsWith('rival') ? 'battle_rival'
+      : (trainer.id.startsWith('syndicate') || trainer.id.startsWith('officer') || trainer.id === 'boss_ladle') ? 'battle_rival'
       : trainer.id === 'champion_aurelia' ? 'battle_champion' : 'battle_chef';
     AudioEngine.playMusic(music);
     this.battle = {
@@ -889,6 +1015,7 @@ const Game = {
     const b = this.battle;
     const player = this.state.party[b.playerIdx];
     const foe = b.foeParty[b.foeIdx];
+    if (!player || !foe) return;
     const mv = MOVES[moveId] || MOVES[0];
 
     b.temp = Math.max(-2, Math.min(2, b.temp + (mv.temp || 0)));
@@ -918,8 +1045,6 @@ const Game = {
       const xpGain = Math.floor(foe.level * 16 * (b.isWild ? 1 : 1.4));
       msg += `${foe.nickname} fainted! +${xpGain} XP! `;
       msg += this.grantXp(player, xpGain);
-      // Kehai fix 2026-11-14: only advance when another foe exists, so the battle
-      // screen never indexes past the last foe (was: black screen on every win).
       if (b.foeIdx + 1 < b.foeParty.length) {
         b.foeIdx++;
         msg += `${b.trainer.name} sent out ${b.foeParty[b.foeIdx].nickname}!`;
@@ -1092,6 +1217,8 @@ const Game = {
       this.state.playTimeSec += dt;
     }
     if (this.animTimer > 0) this.animTimer = Math.max(0, this.animTimer - dt);
+    if (this.bannerTimer > 0) this.bannerTimer = Math.max(0, this.bannerTimer - dt);
+    if (this.transitionTimer > 0) this.transitionTimer = Math.max(0, this.transitionTimer - dt);
     if (this.screen === 'CREDITS') this.creditsScroll += dt * 18;
 
     if (this.screen === 'OVERWORLD') {
@@ -1223,7 +1350,8 @@ const Game = {
     this.drawText(`${cur.name}`, 14, 98, '#F8F8F0');
     this.drawText(`${cur.types.join('/')}`, 14, 110, '#A8DADC');
     this.drawText(cur.dex.slice(0, 26), 14, 124, '#C0C8D0');
-    this.drawText('LEFT/RIGHT  A:Start!', 36, 140, '#98D830');
+    drawCharSprite16(this.ctx, 'player_' + (this.lookIdx || 0), 'down', 206, 98, 0);
+    this.drawText('L/R:Dish U/D:Look A:Go', 14, 140, '#98D830');
   },
 
   renderOptions() {
@@ -1257,28 +1385,74 @@ const Game = {
   renderOverworld() {
     const map = MAPS[this.state.mapId];
     if (!map) return;
-    this.ctx.fillStyle = '#182030';
-    this.ctx.fillRect(0, 0, 240, 16);
-    this.drawText(map.name.slice(0, 15), 2, 4, '#F8E888');
-    this.drawText(`${this.state.isNight ? 'N' : 'D'} S:${this.state.seals.length} ${this.state.gold}G`, 130, 4, '#A8DADC');
+    const mw = map.w || 30, mh = map.h || 18;
+    const viewY = 20, viewH = 140;
 
-    for (let y = 0; y < 18; y++) {
-      for (let x = 0; x < 30; x++) {
-        this.drawTile8(map.grid[y * 30 + x], x * 8, 16 + y * 8);
+    // Top HUD: full map name + spelled-out Day/Night & Seals
+    this.ctx.fillStyle = '#182030';
+    this.ctx.fillRect(0, 0, 240, viewY);
+    this.drawText(map.name.slice(0, 29), 2, 2, '#F8E888');
+    this.drawText(`${this.state.isNight ? 'Night' : 'Day'} Seals:${this.state.seals.length}/8 ${this.state.gold}G`, 2, 11, '#A8DADC');
+
+    // Camera centering & clamping
+    let camX = mw * 8 <= 240 ? -Math.floor((240 - mw * 8) / 2) : Math.max(0, Math.min(mw * 8 - 240, this.state.x * 8 + 4 - 120));
+    let camY = mh * 8 <= viewH ? -Math.floor((viewH - mh * 8) / 2) : Math.max(0, Math.min(mh * 8 - viewH, this.state.y * 8 + 4 - Math.floor(viewH / 2)));
+
+    this.ctx.save();
+    this.ctx.beginPath();
+    this.ctx.rect(0, viewY, 240, viewH);
+    this.ctx.clip();
+
+    const animTick = Math.floor(this.frameCount / 18) % 2;
+    const x0 = Math.max(0, Math.floor(camX / 8)), x1 = Math.min(mw - 1, Math.ceil((camX + 240) / 8));
+    const y0 = Math.max(0, Math.floor(camY / 8)), y1 = Math.min(mh - 1, Math.ceil((camY + viewH) / 8));
+
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        let tid = map.grid[y * mw + x];
+        if (tid === 73 && this.state.switches && this.state.switches[map.id]) tid = 71;
+        const sx = x * 8 - camX, sy = viewY + y * 8 - camY;
+        this.drawTile8(tid, sx, sy);
+        // Animated water shimmer & tall grass sway
+        if ([13, 25, 37, 49].includes(tid)) {
+          this.ctx.fillStyle = '#F8F8F0';
+          this.ctx.fillRect(sx + (animTick ? 2 : 5), sy + 3, 2, 1);
+        } else if ([11, 23, 35, 47, 62].includes(tid) && animTick) {
+          this.ctx.fillStyle = '#78C860';
+          this.ctx.fillRect(sx + 1, sy + 1, 2, 2);
+        }
       }
     }
 
     if (this.state.isNight) {
       this.ctx.fillStyle = 'rgba(16, 24, 56, 0.35)';
-      this.ctx.fillRect(0, 16, 240, 144);
+      this.ctx.fillRect(0, viewY, 240, viewH);
     }
 
     for (const npc of (map.npcs || [])) {
       if (this.isNpcHidden(npc)) continue;
-      drawCharSprite16(this.ctx, npc.sprite || 'villager_a', npc.dir || 'down', npc.x * 8 - 4, 16 + npc.y * 8 - 8);
+      drawCharSprite16(this.ctx, npc.sprite || 'villager_0', npc.dir || 'down', npc.x * 8 - 4 - camX, viewY + npc.y * 8 - 16 - camY, 0);
     }
 
-    drawCharSprite16(this.ctx, 'player', this.state.dir || 'down', this.state.x * 8 - 4, 16 + this.state.y * 8 - 8);
+    const wf = this.moveCooldown > 0 ? this.walkFrame : 0;
+    drawCharSprite16(this.ctx, this.state.playerLook || 'player_0', this.state.dir || 'down', this.state.x * 8 - 4 - camX, viewY + this.state.y * 8 - 16 - camY, wf);
+
+    if (map.dark) {
+      this.ctx.fillStyle = 'rgba(8, 10, 18, 0.72)';
+      this.ctx.fillRect(0, viewY, 240, viewH);
+      const px = this.state.x * 8 + 4 - camX, py = viewY + this.state.y * 8 + 4 - camY;
+      this.ctx.clearRect(px - 28, py - 28, 56, 56);
+    }
+
+    if (this.bannerTimer > 0 && this.bannerText) {
+      this.drawBox(16, viewY + 6, 208, 18, '#141C2C', '#F0C040');
+      this.drawText(this.bannerText.slice(0, 24), 22, viewY + 11, '#F8E888');
+    }
+    if (this.transitionTimer > 0) {
+      this.ctx.fillStyle = `rgba(10, 12, 20, ${Math.min(1, this.transitionTimer * 4)})`;
+      this.ctx.fillRect(0, viewY, 240, viewH);
+    }
+    this.ctx.restore();
   },
 
   renderDialog() {
@@ -1302,6 +1476,7 @@ const Game = {
     if (!b) return;
     const player = this.state.party[b.playerIdx];
     const foe = b.foeParty[b.foeIdx];
+    if (!player || !foe) return;
     const pSp = BEATSTS_BY_ID[player.speciesId];
     const fSp = BEATSTS_BY_ID[foe.speciesId];
 
@@ -1312,26 +1487,26 @@ const Game = {
 
     const tempLabels = { '-2':'CHILL -2', '-1':'COOL -1', '0':'ROOM 0', '1':'WARM +1', '2':'SEAR +2' };
     const tempColors = { '-2':'#4CC9F0', '-1':'#A8DADC', '0':'#F8F8F0', '1':'#E8A850', '2':'#E63946' };
-    this.drawBox(66, 2, 108, 13, '#101824', tempColors[b.temp]);
-    this.drawText(`TEMP:${tempLabels[b.temp]}`, 70, 5, tempColors[b.temp]);
+    this.drawBox(24, 2, 114, 12, '#101824', tempColors[b.temp]);
+    this.drawText(`TEMP:${tempLabels[b.temp]}`, 28, 4, tempColors[b.temp]);
 
-    // Foe HUD & 32x32 front sprite
-    this.drawBox(4, 18, 128, 28, '#182030', '#F8F8F0');
-    this.drawText(`${foe.nickname.slice(0,10)} L${foe.level}`, 8, 21, '#F8F8F0');
-    this.ctx.fillStyle = '#404858'; this.ctx.fillRect(8, 32, 114, 5);
+    // Foe HUD & 32x32 front sprite (zero overlap with Player HUD!)
+    this.drawBox(4, 16, 126, 28, '#182030', '#F8F8F0');
+    this.drawText(`${foe.nickname.slice(0,10)} L${foe.level}`, 8, 19, '#F8F8F0');
+    this.ctx.fillStyle = '#404858'; this.ctx.fillRect(8, 30, 114, 5);
     this.ctx.fillStyle = foe.hp > foe.maxHp * 0.3 ? '#52B788' : '#E63946';
-    this.ctx.fillRect(8, 32, Math.floor(114 * (foe.hp / foe.maxHp)), 5);
-    if (foe.status) this.drawText(foe.status, 8, 38, '#F8E888');
-    this.drawSprite32(fSp.front, fSp.palette, 154, 18, 2);
+    this.ctx.fillRect(8, 30, Math.floor(114 * (foe.hp / foe.maxHp)), 5);
+    if (foe.status) this.drawText(foe.status, 8, 36, '#F8E888');
+    this.drawSprite32(fSp.front, fSp.palette, 164, 4, 2);
 
     // Player 32x32 back sprite & HUD
-    this.drawSprite32(pSp.back, pSp.palette, 16, 46, 2);
-    this.drawBox(102, 66, 134, 38, '#182030', '#F8F8F0');
-    this.drawText(`${player.nickname.slice(0,10)} L${player.level}`, 106, 70, '#F8F8F0');
-    this.ctx.fillStyle = '#404858'; this.ctx.fillRect(106, 82, 120, 5);
+    this.drawSprite32(pSp.back, pSp.palette, 14, 44, 2);
+    this.drawBox(100, 70, 136, 36, '#182030', '#F8F8F0');
+    this.drawText(`${player.nickname.slice(0,10)} L${player.level}`, 104, 73, '#F8F8F0');
+    this.ctx.fillStyle = '#404858'; this.ctx.fillRect(104, 84, 120, 5);
     this.ctx.fillStyle = player.hp > player.maxHp * 0.3 ? '#52B788' : '#E63946';
-    this.ctx.fillRect(106, 82, Math.floor(120 * (player.hp / player.maxHp)), 5);
-    this.drawText(`HP ${player.hp}/${player.maxHp}`, 106, 91, '#A8DADC');
+    this.ctx.fillRect(104, 84, Math.floor(120 * (player.hp / player.maxHp)), 5);
+    this.drawText(`HP ${player.hp}/${player.maxHp}`, 104, 93, '#A8DADC');
 
     if (this.animTimer > 0) {
       this.ctx.fillStyle = this.animType === 'flame' ? 'rgba(230,57,70,0.45)' :
@@ -1503,8 +1678,8 @@ const Game = {
 
 window.BEATS_API = {
   Game, TYPES, TYPE_CHART, getTypeEffectiveness, FLAVOR_COMBOS, MOVES,
-  BEATSTS, BEATSTS_BY_ID, TILES_8X8, TILE_PALETTE, CHAR_SPRITES, ITEMS, REGIONAL_SHOPS, calcPlatingChance,
-  REGIONS, MAPS, SOLID_TILES, TRAINERS, QUESTS, SECRETS, EXTRA_DIALOGUE_BANK,
+  BEATSTS, BEATSTS_BY_ID, TILES_8X8, TILE_PALETTE, TILE_ROLES, CHAR_SPRITES, buildCharSpriteGrid, ITEMS, REGIONAL_SHOPS, calcPlatingChance,
+  REGIONS, MAPS, SOLID_TILES, TRAINERS, QUESTS, SECRETS,
   AUDIO_CHANNELS, MUSIC_TRACKS, SFX_DEFS, renderTrackOffline, renderSfxOffline, AudioEngine,
   FONT_SANS_HEX, FONT_SERIF_HEX, FONT_SANS_BYTES, FONT_SERIF_BYTES, ASCII_FALLBACK_MAP, toAsciiFontStr, isAsciiFontCovered,
   createBeatstInstance
