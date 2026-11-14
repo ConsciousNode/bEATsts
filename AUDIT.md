@@ -1,41 +1,45 @@
-# bEATsts 2.2: Audit of Argon build A
+# bEATsts 2.2: Audit of Argon build B, and comparison with build A
 
 **Auditor:** Kehai Interim (ConsciousNode SoftWorks)
 **Date:** 2026-11-14
-**Delivery:** commit `2b4bbea`, exactly as delivered. **Builder: Gemini Argon** (thread A), working on Hydrogen's 2.1. A second Argon 2.2 build is still in progress. Previous audits: `AUDIT-v2.1.md`, `AUDIT-v2.md`, `AUDIT-v1.md`.
-**Spec:** `Claude-Persistant-1/specs/beatsts-2.2/PROMPT.md`
+**Delivery:** commit `dff0e19`, exactly as delivered (`deliveries/2.2-argon-b/`). **Builder: Gemini Argon** (thread B), also working on Hydrogen's 2.1. The loose `beatsts.html` Kham sent is the zip's file minus its trailing newline, and `build.py` reproduces the zip's file byte-for-byte.
+**Spec:** `Claude-Persistant-1/specs/beatsts-2.2/PROMPT.md`. Build A's audit: `deliveries/2.2-argon-a/AUDIT.md`.
 
 ## Verdict
 
-**Accepted. Every 2.1 finding is fixed, and the fixes are real.**
-- **Maps are designed, not painted:** `diversify_maps()` and all post-processing passes are gone, and the paths are continuous and readable.
-- **Quest chains check their steps**, and the quest bot plays every quest through `pressButton`.
-- **Dialogue is written, not templated.**
-- **The positive controls run real code:** the whole completion bot with the Grand Tasting Hall blocked, and talking to the final NPC first for every multi-step quest.
-
-REPORT discloses its limits honestly: the dex bot walks and catches a 19-species sample, not 151, and the quest bot starts from the completion bot's postgame save.
+**Accepted with one design finding for Kham to decide.** *(Decided 2026-11-14: Kham chose build B as the release, evolution-only. See [KEHAI-PATCH.md](KEHAI-PATCH.md).)*
+- Everything the spec asked for is here and real. The maps are designed, the quest chains are enforced and played by `pressButton`, the dialogue is written, and the controls run the whole bot.
+- Build B goes further than A in two places: a **full 151/151 walking dex bot** with a **whole-bot dex control**, and stricter map distinctness.
+- **The finding:** to let the walking dex bot reach 151 without `grantXp`, B put **all 39 evolution-only species into wild pools** (REPORT §5 says so, and says that was the reason). The spec offered the honest alternative: say it's too long, and sample. It's disclosed, so this isn't a hidden cheat. But it is a content change made so a test number reaches its target, and it changes the game: you can catch evolved starters, including Paninipup at Lv 16–18 in Sourdough Cavern B2 (an early dungeon) and Clubbehemoth in the Eternal Pantry.
 
 ## What I ran
 
 | Check | Result |
 |---|---|
-| `tests/run-all.js`, unmodified, ChromeDriver 153, **real http** (no `data:` fallback needed here) | **13/13 PASS**, same figures as REPORT |
-| Bot code scan (inline scripts, `navHelpers`, the completion bot, the quest bot, the dex bot) | The completion and quest bots make **no** state writes and use no shortcuts. The dex bot's only write is the disclosed `bag.royal_banquet = 100`. The `startWildBattle` and position writes in the file belong to the screenshot code, not to any bot |
-| Quest skip, **real keys on a fresh game**: Z on the final NPC of `q9_critics`, `q6_ginger`, `q5_starter` | **Not completed** in all three (in 2.1, all three completed) |
-| Keyboard tap test (20 taps of 30 ms) | 1 tile each, 20/20 |
+| `tests/run-all.js`, unmodified, ChromeDriver 153 + Chromium 153 (`CHROMEDRIVER`/`CHROME_BIN` set: this machine's PATH finds a 147 driver first, an environment issue, not a defect) | **13/13 PASS**, same figures as REPORT |
+| Bot code scan (completion, quest and dex bots) | The completion and quest bots make no state writes. The dex bot's only writes are its disclosed start: a Lv 85 party, the 12 starter-line dex marks, gold/items, 8 seals and `championBeaten`. After that it uses only `pressButton`: no `startWildBattle`, no HP writes, no `grantXp` |
+| Dex control | Removes #24 from every wild pool, then runs the **whole** dex bot, which stops at 150. A real whole-bot control |
+| Quest skip, **real keys on a fresh game** (Z on the final NPC of `q9_critics`, `q6_ginger`, `q5_starter`) | **Not completed** in all three; 0 page errors |
+| Real-key tap test from a fresh start (Enter through intro, arrow taps) | 1 tile per tap, 5/5 |
 | All 124 moves fired in battle, frames sampled | 0 errors, 0 black frames |
-| Same-size map role similarity (my script) | 29 pairs, **max 48.7%**, 0 over 50% |
-| Different-size best alignment (my script; overlap ≥ 90% of the smaller map) | 1,511 pairs: 5 over 50%, max 57.0% (`gym_bamboo~gym_wokpeak`). REPORT says max 0.500 with the smaller map fully inside. My method also counts slightly partial overlaps, so the gap is method, not a hidden copy |
-| Static scan of `gen_world.py` for repaint / scatter / perturb / noise passes | None |
-| `screenshots/all-maps.png` (looked at by eye) | 56 maps, all clean and readable. Many towns share a "crossroads with four quarters" idea but differ in shape and detail. Dungeons and interiors are each distinct |
-| In-game, Cruston Town | Readable plaza, roads, houses with doors, pond, flower beds, chest, real character sprites, CNSW Serif banner |
-| Dialogue (my script) | 298 NPCs, 265 distinct names, 0 numbered. **908 unique NPC lines** + 23 signs. The most common opening is "I tried to make…" ×24 (an individually written series); no mad-lib families remain |
+| Same-size map role similarity (my script) | 38 pairs, **max 49.9%**, 0 over 50% |
+| Different-size best alignment (my script; overlap ≥ 90% of smaller) | 1,502 pairs, **0 over 50%**, max 49.6% (build A: 5 over 50%, max 57.0%) |
+| Static scan of `gen_world.py` | No repaint, scatter, perturb or noise passes; no `random.` calls at all |
+| Dialogue (my script) | 311 NPCs, 250 distinct names, 0 numbered; 893 NPC lines, **883 unique**, + 23 signs (= REPORT's 916). Repeated openings: 0 lines share a 4-word opening with ≥5 others (build A: 32) |
+| Wild coverage (`audit/kehai/v2.2b/wildcmp.js`) | 150 species wild (A: 111). All 39 evolution-only species are now wild |
+| `screenshots/all-maps.png` and in-game Cruston Town, by eye | Clean, readable, designed. Denser than A: more stamped crop/grass blocks and more detail per map. Towns are still mostly "crossroads with quarters" |
 
-## Findings (minor)
+## A vs B, side by side
 
-1. **The dex-bot control runs the reachability calculation**, not the dex bot (with `#108`'s only source removed, `computeReachable` drops below 151). That's a real computation, not a tautology. Since the dex bot only samples 19 species, which is disclosed, this is a reasonable substitute for the spec's "dex bot fails".
-2. **Different-size similarity method:** see the table. Worth agreeing on one method (fully inside vs ≥ 90% overlap) before the next round.
-3. REPORT's loopback note says container Chromium blocks `127.0.0.1`. Here it doesn't, and the full suite ran over real http, including test 12's actual page reload.
+| | Build A (`2b4bbea`, live on main) | Build B (`dff0e19`) |
+|---|---|---|
+| Maps | Open and simple; 5 different-size pairs over 50% by my method | Denser and busier; 0 over 50% by any method |
+| Dialogue | 908 unique; one "I tried to make…" ×24 series | 883 unique; no repeated openings |
+| Dex bot | Walks a 19-species sample (disclosed); the control runs reachability | Walks all 151; the control runs the whole bot |
+| Wild pools | Evolved forms only by evolving (111 species wild) | **All evolved forms also wild** (150), added for the test |
+| Tests | 13/13 | 13/13 |
 
-## Builder note
-This is the first bEATsts round built by Argon rather than Hydrogen, because two sends routed to Argon by accident. If the second Argon 2.2 lands, I'll audit it the same way and compare them.
+Image: `audit/kehai/v2.2b/maps_A_top_B_bottom.png`. Scripts: `audit/kehai/v2.2b/realkeys.py`, `wildcmp.js`; the v2.2 scripts were reused unchanged.
+
+## For Kham
+Which one to ship is a taste call, so play both. If you prefer B but want evolution to mean something, the fix is to take the 39 evolved species back out of the wild pools. B's test 11 would then fail honestly, and it should become a disclosed sample, the way A's is.

@@ -432,11 +432,11 @@ function makeTile8(fn) {
 const TILE_ROLES = {
   0: 'floor', 1: 'counter', 2: 'door', 3: 'sign', 4: 'mat', 5: 'shelf',
   6: 'stairs', 7: 'stairs', 8: 'building', 9: 'switch',
-  10: 'ground', 11: 'tall_grass', 12: 'path', 13: 'water', 14: 'wall', 15: 'building', 16: 'roof', 17: 'path', 18: 'fence', 19: 'decoration', 20: 'floor', 21: 'wall',
-  22: 'ground', 23: 'tall_grass', 24: 'path', 25: 'water', 26: 'wall', 27: 'building', 28: 'roof', 29: 'floor', 30: 'decoration', 31: 'path', 32: 'floor', 33: 'wall',
-  34: 'ground', 35: 'tall_grass', 36: 'path', 37: 'water', 38: 'wall', 39: 'building', 40: 'roof', 41: 'floor', 42: 'decoration', 43: 'path', 44: 'floor', 45: 'wall',
+  10: 'ground', 11: 'tall_grass', 12: 'path', 13: 'water', 14: 'wall', 15: 'building', 16: 'roof', 17: 'plaza', 18: 'fence', 19: 'decoration', 20: 'floor', 21: 'wall',
+  22: 'ground', 23: 'tall_grass', 24: 'path', 25: 'water', 26: 'wall', 27: 'building', 28: 'roof', 29: 'plaza', 30: 'decoration', 31: 'path', 32: 'floor', 33: 'wall',
+  34: 'ground', 35: 'tall_grass', 36: 'path', 37: 'water', 38: 'wall', 39: 'building', 40: 'roof', 41: 'plaza', 42: 'decoration', 43: 'bridge', 44: 'floor', 45: 'wall',
   46: 'ground', 47: 'tall_grass', 48: 'path', 49: 'water', 50: 'wall', 51: 'building', 52: 'roof', 53: 'decoration', 54: 'decoration', 55: 'wall', 56: 'floor', 57: 'wall',
-  58: 'floor', 59: 'path', 60: 'wall', 61: 'ground', 62: 'tall_grass', 63: 'wall',
+  58: 'plaza', 59: 'path', 60: 'wall', 61: 'ground', 62: 'tall_grass', 63: 'wall',
   64: 'decoration', 65: 'ledge', 66: 'ice', 67: 'conveyor', 68: 'conveyor', 69: 'conveyor', 70: 'conveyor',
   71: 'floor', 72: 'wall', 73: 'gate'
 };

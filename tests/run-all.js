@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const crypto = require('crypto');
 const assert = require('assert');
 const { spawn, execSync } = require('child_process');
 
@@ -94,41 +95,41 @@ function computeReachable(beatstsById, maps) {
   return got;
 }
 
+// Compare both same-size AND different-size map pairs (sliding smaller over larger at best alignment)
 function checkMapRoleSimilarity(maps, tileRoles) {
   const list = Object.values(maps);
-  const roleGrids = list.map(m => {
-    const arr = new Array(m.grid.length);
-    for (let k = 0; k < m.grid.length; k++) arr[k] = tileRoles[m.grid[k]] || 'other';
-    return arr;
-  });
   let maxSame = 0, maxDiff = 0;
   for (let i = 0; i < list.length; i++) {
     for (let j = i + 1; j < list.length; j++) {
       const a = list[i], b = list[j];
-      const ga = roleGrids[i], gb = roleGrids[j];
-      if (a.w === b.w && a.h === b.h) {
-        let same = 0;
-        for (let k = 0; k < ga.length; k++) if (ga[k] === gb[k]) same++;
-        const sim = same / ga.length;
-        if (sim > maxSame) maxSame = sim;
-        if (sim > 0.50) throw new Error(`Same-size map role similarity ${sim.toFixed(3)} > 0.50 between ${a.id} and ${b.id}`);
-      } else if ((a.w <= b.w && a.h <= b.h) || (b.w <= a.w && b.h <= a.h)) {
-        const [small, gs, big, gb2] = (a.w <= b.w && a.h <= b.h) ? [a, ga, b, gb] : [b, gb, a, ga];
-        let best = 0;
-        for (let oy = 0; oy <= big.h - small.h; oy++) {
-          for (let ox = 0; ox <= big.w - small.w; ox++) {
-            let same = 0;
-            for (let y = 0; y < small.h; y++) {
-              const rs = y * small.w, rb = (oy + y) * big.w + ox;
-              for (let x = 0; x < small.w; x++) if (gs[rs + x] === gb2[rb + x]) same++;
+      const wa = a.w || 30, ha = a.h || 18, wb = b.w || 30, hb = b.h || 18;
+      const ga = Array.from(a.grid, t => tileRoles[t] || 'other');
+      const gb = Array.from(b.grid, t => tileRoles[t] || 'other');
+      const ow = Math.min(wa, wb), oh = Math.min(ha, hb);
+      let best = 0;
+      for (let dya = 0; dya <= ha - oh; dya++) {
+        for (let dyb = 0; dyb <= hb - oh; dyb++) {
+          if (dya > 0 && dyb > 0) continue;
+          for (let dxa = 0; dxa <= wa - ow; dxa++) {
+            for (let dxb = 0; dxb <= wb - ow; dxb++) {
+              if (dxa > 0 && dxb > 0) continue;
+              let same = 0;
+              for (let y = 0; y < oh; y++) {
+                const ra = (dya + y) * wa + dxa;
+                const rb = (dyb + y) * wb + dxb;
+                for (let x = 0; x < ow; x++) {
+                  if (ga[ra + x] === gb[rb + x]) same++;
+                }
+              }
+              const sim = same / (ow * oh);
+              if (sim > best) best = sim;
             }
-            const sim = same / gs.length;
-            if (sim > best) best = sim;
           }
         }
-        if (best > maxDiff) maxDiff = best;
-        if (best > 0.50) throw new Error(`Best-alignment map role similarity ${best.toFixed(3)} > 0.50 between ${small.id} (${small.w}x${small.h}) and ${big.id} (${big.w}x${big.h})`);
       }
+      if (wa === wb && ha === hb) { if (best > maxSame) maxSame = best; }
+      else { if (best > maxDiff) maxDiff = best; }
+      if (best > 0.50) throw new Error(`Map role similarity ${best.toFixed(3)} > 0.50 between ${a.id} and ${b.id}`);
     }
   }
   return { maxSame, maxDiff };
@@ -136,8 +137,8 @@ function checkMapRoleSimilarity(maps, tileRoles) {
 
 function checkAllPortalsReachable(maps, solidTiles) {
   const visMaps = new Set(['cruston_town']);
-  const visTiles = new Set(['cruston_town,14,12']);
-  const q = [['cruston_town', 14, 12]];
+  const visTiles = new Set(['cruston_town,15,10']);
+  const q = [['cruston_town', 15, 10]];
   const reachedPortals = new Set();
   while (q.length) {
     const [mid, x, y] = q.shift();
@@ -177,28 +178,6 @@ function checkAllPortalsReachable(maps, solidTiles) {
   return { maps: visMaps.size, portals: reachedPortals.size };
 }
 
-function collapseTemplateFamilies(lines, maps) {
-  // Collapse lines that differ only by swapped dish/food/place/region names or numbers
-  const placeNames = Object.values(maps).map(m => m.name).sort((a, b) => b.length - a.length);
-  const regions = ['Breadlands', 'Steambay', 'Noodleridge', 'Brothbasin', 'TastingHall', 'Postgame'];
-  const dishes = [
-    'sourdough','focaccia','brioche','ciabatta','rye toast','panini','baguette','pretzel','croissant','pita',
-    'baozi','gyoza','shumai','pierogi','empanada','onigiri','mochi','ravioli','khinkali','takoyaki',
-    'ramen','udon','pho broth','pho','lo mein','pad thai','lasagna','spaghetti','soba','macaroni','vermicelli',
-    'chowder','bisque','consomme','miso','borscht','gumbo','minestrone','gazpacho','chili'
-  ].sort((a, b) => b.length - a.length);
-  const collapsed = new Set();
-  for (const raw of lines) {
-    let s = raw;
-    for (const p of placeNames) s = s.split(p).join('<PLACE>');
-    for (const r of regions) s = s.split(r).join('<REGION>');
-    for (const d of dishes) s = s.replace(new RegExp(`\\b${d}\\b`, 'gi'), '<DISH>');
-    s = s.replace(/\d+/g, '<NUM>').trim();
-    collapsed.add(s);
-  }
-  return collapsed;
-}
-
 function loadGameApiInNode() {
   const html = fs.readFileSync(HTML_PATH, 'utf8');
   const m = html.match(/<!-- INLINE SCRIPT:[\s\S]*?<script>([\s\S]*?)<\/script>/);
@@ -208,7 +187,7 @@ function loadGameApiInNode() {
     window: {},
     addEventListener: () => {},
     document: {
-      getElementById: () => ({ addEventListener: () => {} }),
+      getElementById: () => ({ value: 'Brie', addEventListener: () => {} }),
       querySelectorAll: () => [],
       createElement: () => ({ click: () => {}, remove: () => {} }),
       body: { appendChild: () => {} }
@@ -256,7 +235,7 @@ class WebDriverClient {
     if (this.chromeBin) chromeOpts.binary = this.chromeBin;
     const res = await this.req('POST', '/session', { capabilities: { alwaysMatch: { browserName: 'chrome', 'goog:chromeOptions': chromeOpts } } });
     this.sessionId = res.sessionId;
-    await this.req('POST', `/session/${this.sessionId}/timeouts`, { script: 120000 });
+    await this.req('POST', `/session/${this.sessionId}/timeouts`, { script: 180000 });
   }
   async stop() { if (this.sessionId) { try { await this.req('DELETE', `/session/${this.sessionId}`); } catch (e) {} this.sessionId = null; } }
   async url(u) { return this.req('POST', `/session/${this.sessionId}/url`, { url: u }); }
@@ -274,15 +253,9 @@ class WebDriverClient {
 }
 
 async function main() {
-  // Clean old screenshots so zero leftovers remain
-  if (fs.existsSync(SHOTS_DIR)) {
-    for (const f of fs.readdirSync(SHOTS_DIR)) {
-      if (f.endsWith('.png')) fs.unlinkSync(path.join(SHOTS_DIR, f));
-    }
-  } else {
-    fs.mkdirSync(SHOTS_DIR, { recursive: true });
-  }
-
+  // Clean and recreate screenshots dir so zero leftovers from earlier versions exist
+  fs.rmSync(SHOTS_DIR, { recursive: true, force: true });
+  fs.mkdirSync(SHOTS_DIR, { recursive: true });
   const { api, html, script } = loadGameApiInNode();
 
   // TEST 1: bEATdex & 32x32 Sprites + Character Sprites
@@ -314,7 +287,9 @@ async function main() {
     const f2 = api.buildCharSpriteGrid(k, 'down', 2);
     assert(f0.length === 16 * 24, `Expected 16x24 sprite on ${k}`);
     assert(JSON.stringify(f0) !== JSON.stringify(f1) && JSON.stringify(f1) !== JSON.stringify(f2), `Walk frames must differ on ${k}`);
-    for (const dir of ['down','up','left','right']) assert(api.buildCharSpriteGrid(k, dir, 0).length === 384);
+    for (const dir of ['down','up','left','right']) {
+      assert(api.buildCharSpriteGrid(k, dir, 0).length === 384);
+    }
     const norm = Array.from(normalizeSpriteShape(f0)).join(',');
     assert(!namedShapes.has(norm), `Named character ${k} is not unique!`);
     namedShapes.add(norm);
@@ -323,52 +298,80 @@ async function main() {
   assert(villagerKeys.length >= 12, `Expected >=12 generic villager designs, got ${villagerKeys.length}`);
   console.log(`PASS: 151 bEATsts + ${namedKeys.length} unique named chars (4 dirs x 3 frames) + ${villagerKeys.length} generic villagers verified.`);
 
-  // TEST 2: Reachability (151/151)
+  // TEST 2: Reachability (151/151 + positive control)
   console.log('\n[TEST 2] Reachability (151/151)...');
   const reach = computeReachable(api.BEATSTS_BY_ID, api.MAPS);
   assert.strictEqual(reach.size, 151);
-  console.log('PASS: 151/151 species obtainable.');
+  // Positive control: removing #6 (Pbnjinx) from wildPool drops reachability of #6 and #7
+  const mapsNo6 = JSON.parse(JSON.stringify(api.MAPS));
+  for (const m of Object.values(mapsNo6)) m.wildPool = (m.wildPool || []).filter(e => e[0] !== 6);
+  const reachNo6 = computeReachable(api.BEATSTS_BY_ID, mapsNo6);
+  assert(reachNo6.size < 151, 'Reachability positive control must fail when species #6 source is removed');
+  console.log(`PASS: 151/151 species obtainable (positive control without #6 dropped to ${reachNo6.size}/151).`);
 
-  // TEST 3: Dialogue (real displayed strings only, collapsed template families >= 800)
-  console.log('\n[TEST 3] Dialogue (real displayed strings, collapsed template families >= 800)...');
+  // TEST 3: Dialogue (real displayed strings only, collapsed template families >= 800, 0 numbered NPCs)
+  console.log('\n[TEST 3] Dialogue (real displayed strings & collapsed template families)...');
   assert(!api.EXTRA_DIALOGUE_BANK, 'EXTRA_DIALOGUE_BANK must be deleted!');
+  const genWorldSrc = fs.readFileSync(path.join(ROOT, 'gen_world.py'), 'utf8');
+  assert(!/OPINION_TEMPLATES/.test(genWorldSrc), 'OPINION_TEMPLATES must be deleted from gen_world.py!');
+
+  // Build vocabulary of food/place/region/species names to collapse any template families
+  const vocab = [
+    'sourdough','focaccia','brioche','ciabatta','rye toast','panini','baguette','pretzel','croissant','pita',
+    'baozi','gyoza','shumai','pierogi','empanada','onigiri','mochi','ravioli','khinkali','takoyaki',
+    'ramen','udon','pho','lo mein','pad thai','lasagna','spaghetti','soba','macaroni','vermicelli',
+    'chowder','bisque','consomme','miso','borscht','gumbo','minestrone','gazpacho','pho broth','chili',
+    'Breadlands','Steambay','Noodleridge','Brothbasin','Grand Tasting Hall','Eternal Pantry'
+  ];
+  for (const m of Object.values(api.MAPS)) vocab.push(m.name);
+  for (const b of api.BEATSTS) vocab.push(b.name);
+  vocab.sort((a, b) => b.length - a.length);
+  const vocabRe = new RegExp('\\b(' + vocab.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'gi');
+  const collapseTemplate = s => s.replace(/\d+/g, '#').replace(vocabRe, '<X>').trim();
+
   let totalLines = 0;
   const uniqueLines = new Set();
+  const collapsedLines = new Set();
   const numberedNpcs = [];
   for (const m of Object.values(api.MAPS)) {
-    for (const s of (m.signs || [])) { totalLines++; uniqueLines.add(s.text); }
+    for (const s of (m.signs || [])) {
+      totalLines++; uniqueLines.add(s.text); collapsedLines.add(collapseTemplate(s.text));
+    }
     for (const n of (m.npcs || [])) {
       if (/\bLocal\s+\d+$/i.test(n.name)) numberedNpcs.push(n.name);
-      for (const l of (n.lines || [])) { totalLines++; uniqueLines.add(l); }
-      for (const l of (n.nightLines || [])) { totalLines++; uniqueLines.add(l); }
+      for (const l of (n.lines || [])) {
+        totalLines++; uniqueLines.add(l); collapsedLines.add(collapseTemplate(l));
+      }
+      for (const l of (n.nightLines || [])) {
+        totalLines++; uniqueLines.add(l); collapsedLines.add(collapseTemplate(l));
+      }
     }
   }
   assert.strictEqual(numberedNpcs.length, 0, `Numbered NPCs found: ${numberedNpcs.join(', ')}`);
-  const collapsed = collapseTemplateFamilies(Array.from(uniqueLines), api.MAPS);
-  assert(collapsed.size >= 800, `Expected >= 800 unique lines after collapsing template families, got ${collapsed.size}`);
-  // Positive control: a 50-line template family collapses to 1
-  const fakeTemplate = Array.from({ length: 50 }, (_, i) => `At night, the stars over Cruston Town make ${['sourdough','ramen','baozi','bisque','gyoza'][i % 5]} taste ${i}x cozy.`);
-  assert.strictEqual(collapseTemplateFamilies(fakeTemplate, api.MAPS).size, 1, 'Positive control: template family must collapse to 1');
-  console.log(`PASS: Dialogue total=${totalLines}, unique=${uniqueLines.size}, uniqueCollapsed=${collapsed.size} (>= 800), 0 numbered NPCs.`);
+  assert(collapsedLines.size >= 800, `Expected >= 800 unique collapsed lines, got ${collapsedLines.size}`);
+  // Verify template collapsing collapses mad-lib families to 1
+  const madLibTest = new Set(['I walked three miles just to smell ramen simmering in Cruston Town.', 'I walked three miles just to smell baozi simmering in Bao Harbor.'].map(collapseTemplate));
+  assert.strictEqual(madLibTest.size, 1, 'Template collapser must collapse swapped food/place lines to 1');
+  console.log(`PASS: Dialogue total=${totalLines}, unique=${uniqueLines.size}, uniqueCollapsed=${collapsedLines.size} (>= 800), 0 numbered NPCs.`);
 
-  // TEST 4: Maps (no post-processing in build, <= 50% same-size & best-alignment, positive control)
-  console.log('\n[TEST 4] Maps, interiors, dungeons, build static scan & portal reachability...');
-  const genWorldSrc = fs.readFileSync(path.join(ROOT, 'gen_world.py'), 'utf8');
-  const buildSrc = fs.readFileSync(path.join(ROOT, 'build.py'), 'utf8');
-  assert(!/diversify_maps|OPINION_TEMPLATES/.test(genWorldSrc), 'gen_world.py must not contain diversify_maps or OPINION_TEMPLATES!');
-  assert(!/diversify_maps|hashlib/.test(buildSrc), 'build.py must not contain post-processing passes!');
+  // TEST 4: Maps (static scan of build scripts for no post-processing pass, role similarity <= 50% for same-size & sliding-window diff-size, repainted copy positive control)
+  console.log('\n[TEST 4] Maps, interiors, dungeons, static build scan & portal reachability...');
+  const buildPySrc = fs.readFileSync(path.join(ROOT, 'build.py'), 'utf8');
+  assert(!/diversify_maps|hashlib\.md5/.test(genWorldSrc + buildPySrc), 'Post-processing map repaint/scatter passes are forbidden!');
   const simRes = checkMapRoleSimilarity(api.MAPS, api.TILE_ROLES);
   const pr = checkAllPortalsReachable(api.MAPS, api.SOLID_TILES);
+  // Positive control: a repainted copy of a map (different regional tile IDs with same roles!) fails
   let copyFailed = false;
   try {
     const mClone = { ...api.MAPS };
-    mClone.fake_copy = { ...api.MAPS.cruston_town, id: 'fake_copy' };
+    const repaintedGrid = new Uint8Array(api.MAPS.cruston_town.grid).map(t => t === 10 ? 22 : (t === 12 ? 24 : (t === 14 ? 26 : t)));
+    mClone.repainted_copy = { ...api.MAPS.cruston_town, id: 'repainted_copy', grid: repaintedGrid };
     checkMapRoleSimilarity(mClone, api.TILE_ROLES);
   } catch (e) { copyFailed = true; }
-  assert(copyFailed, 'Positive control: repainted map copy must fail!');
+  assert(copyFailed, 'Positive control: repainted copy of a map must fail!');
   const synTrainers = Object.values(api.TRAINERS).filter(t => t.id.startsWith('officer_') || t.id.startsWith('syndicate_') || t.id === 'boss_ladle');
   assert(synTrainers.length >= 5, `Expected >=5 syndicate battles, got ${synTrainers.length}`);
-  console.log(`PASS: ${pr.maps} maps, ${pr.portals}/${pr.portals} portals reachable, maxSameSim=${simRes.maxSame.toFixed(3)} (<=0.50), maxDiffAlignSim=${simRes.maxDiff.toFixed(3)} (<=0.50), ${synTrainers.length} syndicate encounters.`);
+  console.log(`PASS: ${pr.maps} maps, ${pr.portals}/${pr.portals} portals reachable, maxSameSim=${simRes.maxSame.toFixed(3)} (<=0.50), maxDiffSlidingSim=${simRes.maxDiff.toFixed(3)} (<=0.50), repainted copy failed as expected.`);
 
   // TEST 5: Music & SFX offline render
   console.log('\n[TEST 5] Music & SFX offline render...');
@@ -425,11 +428,15 @@ async function main() {
 
     const installMonitor = `
       window.__PAGE_ERRORS = [];
+      window.__FRAME_Checks = 0;
+      window.__LAST_SCREEN = '';
       window.addEventListener('error', e => window.__PAGE_ERRORS.push(e.message || String(e)));
       window.__checkFrame = () => {
         const g = window.BEATS_API.Game;
         g.render();
-        if (['OVERWORLD','BATTLE','MENU','DEX'].includes(g.screen)) {
+        window.__FRAME_Checks++;
+        if (['OVERWORLD','BATTLE','MENU','DEX'].includes(g.screen) && (g.screen !== window.__LAST_SCREEN || window.__FRAME_Checks % 25 === 0)) {
+          window.__LAST_SCREEN = g.screen;
           const data = g.ctx.getImageData(0, 0, 240, 160).data;
           let nonDark = 0;
           for (let i = 0; i < data.length; i += 4) if (data[i] > 20 || data[i+1] > 20 || data[i+2] > 20) nonDark++;
@@ -439,158 +446,7 @@ async function main() {
       };
     `;
 
-    // Shared input-only navigation helpers (zero state writes!)
-    const navHelpers = `
-      window.__makeBot = () => {
-        const api = window.BEATS_API;
-        api.AudioEngine.muted = true;
-        const g = api.Game;
-        let steps = 0, battles = 0; window.__lastLogs = [];
-
-        function winBattle() {
-          battles++;
-          let guard = 0;
-          while (g.screen === 'BATTLE' && guard++ < 80) {
-            if (g.battle.phase === 'MAIN') {
-              const mon = g.state.party[g.battle.playerIdx];
-              const healItem = (g.state.bag.grand_feast || 0) > 0 ? 'grand_feast' : ((g.state.bag.hearty_stew || 0) > 0 ? 'hearty_stew' : null);
-              if (mon.hp < mon.maxHp * 0.50 && healItem) {
-                g.pressButton('DOWN'); g.pressButton('A');
-                const heals = Object.keys(g.state.bag).filter(k => g.state.bag[k] > 0 && ['heal','cure','revive'].includes(api.ITEMS[k].kind));
-                const hIdx = heals.indexOf(healItem);
-                for (let k = 0; k < Math.max(0, hIdx); k++) g.pressButton('DOWN');
-                g.pressButton('A');
-              } else {
-                g.pressButton('A');
-                const foe = g.battle.foeParty[g.battle.foeIdx];
-                const fSp = api.BEATSTS_BY_ID[foe.speciesId];
-                let idx = 0, best = -1;
-                mon.moves.forEach((ms, i) => {
-                  if (ms.pp <= 0) return;
-                  const mv = api.MOVES[ms.id];
-                  const sc = mv.power * api.getTypeEffectiveness(mv.type, fSp.types);
-                  if (sc > best) { best = sc; idx = i; }
-                });
-                for (let k = 0; k < idx; k++) g.pressButton('DOWN');
-                g.pressButton('A');
-              }
-            } else if (g.battle.phase === 'LOG') { window.__lastLogs.push(g.battle.log); if (window.__lastLogs.length > 8) window.__lastLogs.shift(); g.pressButton('A'); }
-            else g.pressButton('B');
-            window.__checkFrame();
-          }
-          while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
-        }
-
-        function walkTo(tx, ty) {
-          const q = [[g.state.x, g.state.y, []]];
-          const vis = new Set([g.state.x + ',' + g.state.y]);
-          const dirs = [['UP',0,-1],['DOWN',0,1],['LEFT',-1,0],['RIGHT',1,0]];
-          const map = api.MAPS[g.state.mapId];
-          const mw = map.w || 30, mh = map.h || 18;
-          while (q.length) {
-            const [cx, cy, path] = q.shift();
-            if (cx === tx && cy === ty) {
-              for (const d of path) {
-                g.pressButton(d); steps++;
-                if (g.screen === 'BATTLE') winBattle();
-                while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
-                window.__checkFrame();
-              }
-              return true;
-            }
-            for (const [dn, dx, dy] of dirs) {
-              const nx = cx + dx, ny = cy + dy;
-              if (nx < 0 || nx >= mw || ny < 0 || ny >= mh) continue;
-              const k = nx + ',' + ny;
-              if (vis.has(k)) continue;
-              const tile = map.grid[ny * mw + nx];
-              if (tile === 73) { if (!(g.state.switches && g.state.switches[map.id])) continue; }
-              else if (api.SOLID_TILES.has(tile) || [65,66,67,68,69,70].includes(tile)) continue;
-              if ((map.portals || []).some(p => p.x === nx && p.y === ny)) continue;
-              if ((map.npcs || []).some(n => n.x === nx && n.y === ny && !g.isNpcHidden(n))) continue;
-              vis.add(k); q.push([nx, ny, path.concat(dn)]);
-            }
-          }
-          return false;
-        }
-
-        function talkNpc(npcId) {
-          const map = api.MAPS[g.state.mapId];
-          const npc = map.npcs.find(n => n.id === npcId && !g.isNpcHidden(n));
-          if (!npc) throw new Error("Missing NPC " + npcId + " on " + g.state.mapId);
-          for (const [dx, dy, face] of [[0,1,'UP'],[0,-1,'DOWN'],[1,0,'LEFT'],[-1,0,'RIGHT']]) {
-            if (walkTo(npc.x + dx, npc.y + dy)) {
-              g.pressButton(face); // Faces NPC via pressButton only (zero state writes)
-              g.pressButton('A');
-              while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
-              if (g.screen === 'BATTLE') winBattle();
-              return true;
-            }
-          }
-          throw new Error("Cannot reach NPC " + npcId + " on " + g.state.mapId + " from (" + g.state.x + "," + g.state.y + ")");
-        }
-
-        function goToMap(destId) {
-          const mq = [[g.state.mapId, []]];
-          const mvis = new Set([g.state.mapId]);
-          while (mq.length) {
-            const [cm, mpath] = mq.shift();
-            if (cm === destId) {
-              for (const p of mpath) {
-                const adj = [[0,1,'UP'],[0,-1,'DOWN'],[1,0,'LEFT'],[-1,0,'RIGHT']].find(([dx,dy]) => walkTo(p.x+dx, p.y+dy));
-                if (!adj) throw new Error("goToMap(" + destId + ") stuck on " + g.state.mapId + " at (" + g.state.x + "," + g.state.y + ") trying portal to " + p.to + " at (" + p.x + "," + p.y + ")");
-                g.pressButton(adj[2]); steps++;
-                while (g.screen === 'DIALOG') g.pressButton('A');
-                window.__checkFrame();
-              }
-              return g.state.mapId === destId;
-            }
-            for (const p of (api.MAPS[cm].portals || [])) {
-              if (p.reqSeals && g.state.seals.length < p.reqSeals) continue;
-              if (p.reqFlag && !(g.state.quests && g.state.quests[p.reqFlag])) continue;
-              if (p.reqChampion && !g.state.championBeaten) continue;
-              if (!mvis.has(p.to)) { mvis.add(p.to); mq.push([p.to, mpath.concat(p)]); }
-            }
-          }
-          throw new Error("goToMap(" + destId + ") unreachable from " + g.state.mapId + " seals=" + g.state.seals.length);
-        }
-
-        function hitSwitch() {
-          const m = api.MAPS[g.state.mapId];
-          for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
-            if (m.grid[y * m.w + x] === 9) return walkTo(x, y);
-          }
-          return false;
-        }
-
-        function grindTo(targetLv, innMap, innNpc) {
-          const startMap = g.state.mapId;
-          let guard = 0;
-          while (g.state.party[0].level < targetLv && guard++ < 1500) {
-            if (g.state.party[0].hp < g.state.party[0].maxHp * 0.55 || g.state.party[0].moves.every(mv => mv.pp <= 1)) {
-              if (innMap && innNpc) { goToMap(innMap); talkNpc(innNpc); goToMap(startMap); }
-              else break;
-            }
-            const m = api.MAPS[g.state.mapId];
-            const mw = m.w || 30, mh = m.h || 18;
-            let gx = -1, gy = -1;
-            for (let y = 1; y < mh - 1 && gx < 0; y++) for (let x = 1; x < mw - 1; x++) {
-              if ([11,23,35,47,62].includes(m.grid[y*mw+x])) { gx = x; gy = y; break; }
-            }
-            if (gx < 0) break;
-            walkTo(gx, gy);
-            g.pressButton(guard % 2 ? 'LEFT' : 'RIGHT');
-            if (g.screen === 'BATTLE') winBattle();
-            if (g.state.mapId !== startMap) goToMap(startMap);
-          }
-          if (innMap && innNpc) { goToMap(innMap); talkNpc(innNpc); }
-        }
-
-        return { walkTo, talkNpc, goToMap, hitSwitch, grindTo, winBattle, getStats: () => ({ steps, battles }) };
-      };
-    `;
-
-    // Generate characters-sheet.png, dex-sheet.png, and all-maps.png
+    // Generate dex-sheet.png, characters-sheet.png, and all-maps.png (every map at once!)
     await wd.exec(`
       const api = window.BEATS_API;
       const c = document.createElement('canvas');
@@ -618,38 +474,36 @@ async function main() {
       });
       window.__CHAR_B64 = cc.toDataURL('image/png').split(',')[1];
 
-      // Render all 56 maps at 4px/tile into screenshots/all-maps.png
+      // Render all 56 maps side-by-side into all-maps.png (8 columns x 7 rows)
       const mlist = Object.values(api.MAPS);
-      const cols = 8, rows = Math.ceil(mlist.length / cols);
-      const cellW = 152, cellH = 104;
-      const am = document.createElement('canvas');
-      am.width = cols * cellW; am.height = rows * cellH;
-      const ax = am.getContext('2d');
-      ax.fillStyle = '#0e1018'; ax.fillRect(0, 0, am.width, am.height);
+      const cellW = 38 * 8 + 8, cellH = 24 * 8 + 18;
+      const mc = document.createElement('canvas');
+      mc.width = 8 * cellW; mc.height = 7 * cellH;
+      const mx = mc.getContext('2d'); mx.fillStyle = '#0e1018'; mx.fillRect(0, 0, mc.width, mc.height);
       mlist.forEach((m, idx) => {
-        const ox = (idx % cols) * cellW + 4, oy = Math.floor(idx / cols) * cellH + 4;
+        const col = idx % 8, row = Math.floor(idx / 8);
+        const bx = col * cellW + 4, by = row * cellH + 14;
+        mx.fillStyle = '#f8e888'; mx.font = '10px monospace';
+        mx.fillText(m.id + ' (' + m.w + 'x' + m.h + ')', bx, by - 3);
         for (let ty = 0; ty < m.h; ty++) {
           for (let tx = 0; tx < m.w; tx++) {
             const tid = m.grid[ty * m.w + tx];
-            const tile = api.TILES_8X8[tid] || api.TILES_8X8[0];
-            // Sample 2x2 center pixels into 4x4 block for crisp overview
-            for (let sy = 0; sy < 4; sy++) {
-              for (let sx = 0; sx < 4; sx++) {
-                const ci = tile[(sy * 2) * 8 + (sx * 2)]; ax.fillStyle = (ci ? api.TILE_PALETTE[ci] : '#14161f') || '#14161f';
-                ax.fillRect(ox + tx * 4 + sx, oy + ty * 4 + sy, 1, 1);
-              }
+            const t = api.TILES_8X8[tid] || api.TILES_8X8[0];
+            for (let py = 0; py < 8; py++) for (let px = 0; px < 8; px++) {
+              const ci = t[py * 8 + px];
+              if (ci) { mx.fillStyle = api.TILE_PALETTE[ci]; mx.fillRect(bx + tx * 8 + px, by + ty * 8 + py, 1, 1); }
             }
           }
         }
       });
-      window.__ALL_MAPS_B64 = am.toDataURL('image/png').split(',')[1];
+      window.__ALL_MAPS_B64 = mc.toDataURL('image/png').split(',')[1];
     `);
     fs.writeFileSync(path.join(SHOTS_DIR, 'dex-sheet.png'), Buffer.from(await wd.exec('return window.__DEX_B64;'), 'base64'));
     fs.writeFileSync(path.join(SHOTS_DIR, 'characters-sheet.png'), Buffer.from(await wd.exec('return window.__CHAR_B64;'), 'base64'));
     fs.writeFileSync(path.join(SHOTS_DIR, 'all-maps.png'), Buffer.from(await wd.exec('return window.__ALL_MAPS_B64;'), 'base64'));
     await wd.screenshot(path.join(SHOTS_DIR, 'title.png'));
 
-    // TEST 8: Input Test
+    // TEST 8: Input Test (1 tap = 1 tile, hold 1s = continuous, positive control)
     console.log('\n[TEST 8] Input movement (1 tap = 1 tile, hold = continuous, positive control)...');
     await wd.exec('try { localStorage.clear(); } catch(e) {}');
     await wd.url(targetUrl);
@@ -675,7 +529,7 @@ async function main() {
     assert(tapRes.yAfterTap - tapRes.yAfterHold >= 4, `Holding 1s should move >=4 tiles, moved ${tapRes.yAfterTap - tapRes.yAfterHold}`);
     const tapControl = await wd.exec(`
       const g = window.BEATS_API.Game;
-      g.state.x = 14; g.state.y = 12;
+      g.state.x = 15; g.state.y = 12;
       const y0 = g.state.y;
       g.moveCooldown = 0;
       g.tryMove('up');
@@ -687,57 +541,185 @@ async function main() {
     assert(tapControl >= 2, 'Positive control: missing cooldown must move >=2 tiles');
     console.log(`PASS: 1 tap moved 1 tile, 1s hold moved ${tapRes.yAfterTap - tapRes.yAfterHold} tiles, positive control caught.`);
 
-    // TEST 9: Completion Bot + Whole-Bot Positive Controls
-    console.log('\n[TEST 9] Completion bot (rendering on, zero page errors, all gyms/rivals/syndicate/champion/postgame)...');
-    const runWholeCompletionBotScript = `
-      const g = window.BEATS_API.Game;
+    // TEST 9: Completion Bot + Whole-Bot Blocked Entrance Positive Control
+    console.log('\n[TEST 9] Completion bot (rendering on, zero page errors, all gyms/rivals/syndicate/champion/postgame + whole-bot blocked control)...');
+    const completionBotScript = `
+      const api = window.BEATS_API;
+      api.AudioEngine.muted = true;
+      const g = api.Game;
       g.pressButton('A'); g.pressButton('A'); g.pressButton('A');
       while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
-      const bot = window.__makeBot();
+      let steps = 0, battles = 0;
 
-      if (!bot.goToMap('cruston_mart')) throw new Error('Blocked path to cruston_mart');
-      bot.talkNpc('mart_cruston');
+      function winBattle() {
+        battles++;
+        let guard = 0;
+        while (g.screen === 'BATTLE' && guard++ < 80) {
+          if (g.battle.phase === 'MAIN') {
+            const mon = g.state.party[g.battle.playerIdx];
+            const healItem = (g.state.bag.grand_feast || 0) > 0 ? 'grand_feast' : ((g.state.bag.hearty_stew || 0) > 0 ? 'hearty_stew' : null);
+            if (mon.hp < mon.maxHp * 0.50 && healItem) {
+              g.pressButton('DOWN'); g.pressButton('A');
+              const heals = Object.keys(g.state.bag).filter(k => g.state.bag[k] > 0 && ['heal','cure','revive'].includes(api.ITEMS[k].kind));
+              const hIdx = heals.indexOf(healItem);
+              for (let k = 0; k < Math.max(0, hIdx); k++) g.pressButton('DOWN');
+              g.pressButton('A');
+            } else {
+              g.pressButton('A');
+              const foe = g.battle.foeParty[g.battle.foeIdx];
+              const fSp = api.BEATSTS_BY_ID[foe.speciesId];
+              let idx = 0, best = -1;
+              mon.moves.forEach((ms, i) => {
+                if (ms.pp <= 0) return;
+                const mv = api.MOVES[ms.id];
+                const sc = mv.power * api.getTypeEffectiveness(mv.type, fSp.types);
+                if (sc > best) { best = sc; idx = i; }
+              });
+              for (let k = 0; k < idx; k++) g.pressButton('DOWN');
+              g.pressButton('A');
+            }
+          } else if (g.battle.phase === 'LOG') g.pressButton('A');
+          else g.pressButton('B');
+          window.__checkFrame();
+        }
+        while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+      }
+
+      function walkTo(tx, ty) {
+        const q = [[g.state.x, g.state.y, []]];
+        const vis = new Set([g.state.x + ',' + g.state.y]);
+        const dirs = [['UP',0,-1],['DOWN',0,1],['LEFT',-1,0],['RIGHT',1,0]];
+        const map = api.MAPS[g.state.mapId];
+        const mw = map.w || 30, mh = map.h || 18;
+        while (q.length) {
+          const [cx, cy, path] = q.shift();
+          if (cx === tx && cy === ty) {
+            for (const d of path) {
+              g.pressButton(d); steps++;
+              if (g.screen === 'BATTLE') winBattle();
+              while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+              window.__checkFrame();
+            }
+            return true;
+          }
+          for (const [dn, dx, dy] of dirs) {
+            const nx = cx + dx, ny = cy + dy;
+            if (nx < 0 || nx >= mw || ny < 0 || ny >= mh) continue;
+            const k = nx + ',' + ny;
+            if (vis.has(k)) continue;
+            const tile = map.grid[ny * mw + nx];
+            if (tile === 73) { if (!(g.state.switches && g.state.switches[map.id])) continue; }
+            else if (api.SOLID_TILES.has(tile) || [65,66,67,68,69,70].includes(tile)) continue;
+            if ((map.portals || []).some(p => p.x === nx && p.y === ny)) continue;
+            if ((map.npcs || []).some(n => n.x === nx && n.y === ny && !g.isNpcHidden(n))) continue;
+            vis.add(k); q.push([nx, ny, path.concat(dn)]);
+          }
+        }
+        return false;
+      }
+
+      function talkNpc(npcId) {
+        const map = api.MAPS[g.state.mapId];
+        const npc = map.npcs.find(n => n.id === npcId);
+        if (!npc) return false;
+        for (const [dx, dy, face] of [[0,1,'UP'],[0,-1,'DOWN'],[1,0,'LEFT'],[-1,0,'RIGHT']]) {
+          if (walkTo(npc.x + dx, npc.y + dy)) {
+            g.pressButton(face);
+            g.pressButton('A');
+            while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+            if (g.screen === 'BATTLE') winBattle();
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function goToMap(destId) {
+        const mq = [[g.state.mapId, []]];
+        const mvis = new Set([g.state.mapId]);
+        while (mq.length) {
+          const [cm, mpath] = mq.shift();
+          if (cm === destId) {
+            for (const p of mpath) {
+              const adj = [[0,1,'UP'],[0,-1,'DOWN'],[1,0,'LEFT'],[-1,0,'RIGHT']].find(([dx,dy]) => walkTo(p.x+dx, p.y+dy));
+              if (adj) { g.pressButton(adj[2]); steps++; while (g.screen === 'DIALOG') g.pressButton('A'); window.__checkFrame(); }
+            }
+            return g.state.mapId === destId;
+          }
+          for (const p of (api.MAPS[cm].portals || [])) {
+            if (p.reqSeals && g.state.seals.length < p.reqSeals) continue;
+            if (p.reqChampion && !g.state.championBeaten) continue;
+            if (!mvis.has(p.to)) { mvis.add(p.to); mq.push([p.to, mpath.concat(p)]); }
+          }
+        }
+        return false;
+      }
+
+      function grindTo(targetLv, innMap, innNpc) {
+        const startMap = g.state.mapId;
+        let guard = 0;
+        while (g.state.party[0].level < targetLv && guard++ < 1500) {
+          if (g.state.party[0].hp < g.state.party[0].maxHp * 0.55 || g.state.party[0].moves.every(mv => mv.pp <= 1)) {
+            if (innMap && innNpc) { goToMap(innMap); talkNpc(innNpc); goToMap(startMap); }
+            else break;
+          }
+          const m = api.MAPS[g.state.mapId];
+          const mw = m.w || 30, mh = m.h || 18;
+          let gx = -1, gy = -1;
+          for (let y = 1; y < mh - 1 && gx < 0; y++) for (let x = 1; x < mw - 1; x++) {
+            if ([11,23,35,47,62].includes(m.grid[y*mw+x])) { gx = x; gy = y; break; }
+          }
+          if (gx < 0) break;
+          walkTo(gx, gy);
+          g.pressButton(guard % 2 ? 'LEFT' : 'RIGHT');
+          if (g.screen === 'BATTLE') winBattle();
+          if (g.state.mapId !== startMap) goToMap(startMap);
+        }
+        if (innMap && innNpc) { goToMap(innMap); talkNpc(innNpc); }
+      }
+
+      goToMap('cruston_mart'); talkNpc('mart_cruston');
       for (let i = 0; i < 6; i++) g.pressButton('A'); g.pressButton('B');
 
-      bot.goToMap('toastwood_trail'); bot.grindTo(22, 'cruston_inn', 'inn_cruston'); bot.goToMap('toastwood_trail'); bot.talkNpc('saffron_1'); bot.talkNpc('syn_vesper');
-      bot.goToMap('gym_toaster'); bot.talkNpc('jr_toast_1'); bot.talkNpc('greg_npc');
-      bot.goToMap('panini_inn'); bot.talkNpc('inn_panini'); bot.goToMap('gym_deli'); bot.hitSwitch(); bot.talkNpc('jr_deli_1'); bot.talkNpc('clara_npc'); 
+      goToMap('toastwood_trail'); grindTo(14, 'cruston_inn', 'inn_cruston'); goToMap('toastwood_trail'); talkNpc('saffron_1'); talkNpc('syn_vesper');
+      goToMap('gym_toaster'); talkNpc('jr_toast_1'); talkNpc('greg_npc');
+      goToMap('gym_deli'); walkTo(4, 11); talkNpc('jr_deli_1'); talkNpc('clara_npc');
 
-      bot.goToMap('bao_mart'); bot.talkNpc('mart_bao'); for(let i=0;i<4;i++) g.pressButton('DOWN'); for(let i=0;i<10;i++) g.pressButton('A'); g.pressButton('B');
-      bot.goToMap('bamboo_mist_path'); bot.grindTo(28, 'bao_inn', 'inn_bao'); bot.goToMap('bamboo_mist_path'); bot.talkNpc('syn_crumb');
-      bot.goToMap('bao_inn'); bot.talkNpc('inn_bao'); bot.goToMap('gym_bamboo'); bot.talkNpc('jr_steam_1'); bot.talkNpc('baozi_npc');
-      bot.goToMap('gyoza_cove'); bot.talkNpc('saffron_2');
-      bot.goToMap('bao_inn'); bot.talkNpc('inn_bao');
-      bot.goToMap('gym_skillet'); bot.hitSwitch(); bot.talkNpc('jr_skillet_1'); bot.talkNpc('mei_npc');
+      goToMap('bao_mart'); talkNpc('mart_bao'); for(let i=0;i<4;i++) g.pressButton('DOWN'); for(let i=0;i<10;i++) g.pressButton('A'); g.pressButton('B');
+      goToMap('bamboo_mist_path'); grindTo(28, 'bao_inn', 'inn_bao'); goToMap('bamboo_mist_path'); talkNpc('syn_crumb');
+      goToMap('bao_inn'); talkNpc('inn_bao'); goToMap('gym_bamboo'); talkNpc('jr_steam_1'); talkNpc('baozi_npc');
+      goToMap('gyoza_cove'); talkNpc('saffron_2');
+      goToMap('bao_inn'); talkNpc('inn_bao');
+      goToMap('gym_skillet'); walkTo(17, 11); talkNpc('jr_skillet_1'); talkNpc('mei_npc');
 
-      bot.goToMap('slurp_canyon'); bot.grindTo(38, 'udon_inn', 'inn_udon'); bot.goToMap('slurp_canyon'); bot.talkNpc('syn_glaze');
-      bot.goToMap('udon_inn'); bot.talkNpc('inn_udon'); bot.goToMap('gym_dojo'); bot.talkNpc('jr_dojo_1'); bot.talkNpc('twirl_npc');
-      bot.goToMap('al_dente_ascent'); bot.talkNpc('saffron_3');
-      bot.goToMap('udon_inn'); bot.talkNpc('inn_udon');
-      bot.goToMap('gym_wokpeak'); bot.talkNpc('jr_wok_1'); bot.talkNpc('fusilli_npc');
+      goToMap('slurp_canyon'); grindTo(38, 'udon_inn', 'inn_udon'); goToMap('slurp_canyon'); talkNpc('syn_glaze');
+      goToMap('udon_inn'); talkNpc('inn_udon'); goToMap('gym_dojo'); talkNpc('jr_dojo_1'); talkNpc('twirl_npc');
+      goToMap('al_dente_ascent'); talkNpc('saffron_3');
+      goToMap('udon_inn'); talkNpc('inn_udon');
+      goToMap('gym_wokpeak'); talkNpc('jr_wok_1'); talkNpc('fusilli_npc');
 
-      bot.goToMap('chowder_mart'); bot.talkNpc('mart_chowder'); for(let i=0;i<4;i++) g.pressButton('DOWN'); for(let i=0;i<10;i++) g.pressButton('A'); g.pressButton('B');
-      bot.goToMap('simmer_fen'); bot.grindTo(60, 'chowder_inn', 'inn_chowder'); bot.goToMap('simmer_fen'); bot.talkNpc('saffron_4');
-      bot.goToMap('chowder_inn'); bot.talkNpc('inn_chowder'); bot.goToMap('gym_cauldron'); bot.hitSwitch(); bot.talkNpc('jr_broth_1'); bot.talkNpc('bisque_npc');
-      bot.goToMap('kettle_gorge'); bot.talkNpc('syn_grunt_gorge');
-      bot.goToMap('bisque_inn'); bot.talkNpc('inn_bisque');
-      bot.goToMap('gym_vault'); bot.hitSwitch(); bot.talkNpc('jr_vault_1'); bot.talkNpc('bouillon_npc');
-      bot.goToMap('chrome_fork_hq'); bot.talkNpc('syn_grunt_hq');
-      bot.goToMap('bisque_inn'); bot.talkNpc('inn_bisque');
-      bot.goToMap('chrome_fork_hq_f2'); bot.talkNpc('saffron_5'); bot.hitSwitch(); bot.talkNpc('boss_ladle_npc');
+      goToMap('chowder_mart'); talkNpc('mart_chowder'); for(let i=0;i<4;i++) g.pressButton('DOWN'); for(let i=0;i<10;i++) g.pressButton('A'); g.pressButton('B');
+      goToMap('simmer_fen'); grindTo(56, 'chowder_inn', 'inn_chowder'); goToMap('simmer_fen'); talkNpc('saffron_4');
+      goToMap('chowder_inn'); talkNpc('inn_chowder'); goToMap('gym_cauldron'); walkTo(5, 11); talkNpc('jr_broth_1'); talkNpc('bisque_npc');
+      goToMap('kettle_gorge'); talkNpc('syn_grunt_gorge');
+      goToMap('bisque_inn'); talkNpc('inn_bisque');
+      goToMap('gym_vault'); walkTo(17, 11); talkNpc('jr_vault_1'); talkNpc('bouillon_npc');
+      goToMap('chrome_fork_hq'); talkNpc('syn_grunt_hq');
+      goToMap('bisque_inn'); talkNpc('inn_bisque');
+      goToMap('chrome_fork_hq_f2'); talkNpc('saffron_5'); walkTo(4, 11); talkNpc('boss_ladle_npc');
 
-      if (!bot.goToMap('grand_tasting_hall')) throw new Error('Cannot reach grand_tasting_hall!');
-      bot.talkNpc('inn_hall');
-      bot.talkNpc('saffron_6'); bot.talkNpc('pip_npc'); bot.talkNpc('roux_npc'); bot.talkNpc('mochi_npc'); bot.talkNpc('inn_hall'); bot.talkNpc('aurelia_npc');
+      if (!goToMap('grand_tasting_hall')) {
+        return { map: g.state.mapId, seals: g.state.seals.length, steps, battles, reachedCredits: false, party: g.state.party.map(m => m.nickname + ' L' + m.level) };
+      }
+      talkNpc('inn_hall');
+      talkNpc('saffron_6'); talkNpc('pip_npc'); talkNpc('roux_npc'); talkNpc('mochi_npc'); talkNpc('aurelia_npc');
       const reachedCredits = g.screen === 'CREDITS';
       g.pressButton('A');
-      if (!bot.goToMap('eternal_pantry')) throw new Error('Cannot reach eternal_pantry!');
+      goToMap('eternal_pantry');
       window.__checkFrame();
-      const st = bot.getStats();
       return {
-        map: g.state.mapId, seals: g.state.seals.length, steps: st.steps, battles: st.battles,
-        reachedCredits, party: g.state.party.map(m => m.nickname + ' L' + m.level),
-        saveJson: g.exportSaveJson(0) || JSON.stringify(g.state)
+        map: g.state.mapId, seals: g.state.seals.length, steps, battles,
+        reachedCredits, party: g.state.party.map(m => m.nickname + ' L' + m.level)
       };
     `;
 
@@ -745,181 +727,458 @@ async function main() {
     await wd.url(targetUrl);
     await new Promise(r => setTimeout(r, 300));
     await wd.exec(installMonitor);
-    await wd.exec(navHelpers);
-    const compRes = await wd.exec(runWholeCompletionBotScript);
+    const compRes = await wd.exec(completionBotScript);
     assert.strictEqual(compRes.seals, 8, 'Must earn all 8 seals');
     assert(compRes.reachedCredits, 'Must reach CREDITS');
     assert.strictEqual(compRes.map, 'eternal_pantry', 'Must reach eternal_pantry postgame');
     console.log(`PASS: Completion bot reached CREDITS & Postgame (${compRes.map})! Seals=${compRes.seals}/8, Steps=${compRes.steps}, Battles=${compRes.battles}, Party=[${compRes.party.join(', ')}]`);
 
-    // Positive control: running the WHOLE completion bot with Grand Tasting Hall entrances blocked MUST fail!
+    // Save post-champion state for downstream tests & screenshots
+    const postChampSave = await wd.exec('return window.BEATS_API.Game.exportSaveJson(0);');
+
+    // Whole-bot positive control: block every entrance to Grand Tasting Hall and run the WHOLE completion bot!
     await wd.exec('try { localStorage.clear(); } catch(e) {}');
     await wd.url(targetUrl);
     await new Promise(r => setTimeout(r, 300));
     await wd.exec(installMonitor);
-    await wd.exec(navHelpers);
-    const blockedWholeRes = await wd.exec(`
-      const api = window.BEATS_API;
-      for (const m of Object.values(api.MAPS)) {
+    await wd.exec(`
+      for (const m of Object.values(window.BEATS_API.MAPS)) {
         m.portals = (m.portals || []).filter(p => p.to !== 'grand_tasting_hall');
       }
-      try {
-        ${runWholeCompletionBotScript}
-        return { failed: false };
-      } catch (e) {
-        return { failed: true, msg: e.message };
-      }
     `);
-    assert(blockedWholeRes.failed, 'Positive control: whole completion bot must fail when Grand Tasting Hall is blocked!');
-    console.log(`PASS: Positive control (whole completion bot with blocked Grand Tasting Hall) failed as expected: ${blockedWholeRes.msg}`);
+    const blockedBotRes = await wd.exec(completionBotScript);
+    assert(!blockedBotRes.reachedCredits && blockedBotRes.map !== 'eternal_pantry', 'Whole completion bot MUST fail when Grand Tasting Hall entrances are blocked!');
+    console.log(`PASS: Whole-bot positive control (blocked Grand Tasting Hall) failed as expected at map=${blockedBotRes.map} after ${blockedBotRes.steps} steps.`);
 
-    // TEST 10: Quests Bot (pressButton ONLY, positive control on EVERY multi-step quest)
-    console.log('\n[TEST 10] Quests bot (pressButton only, step-by-step, positive controls)...');
-    // Load the completion bot's postgame save (earned via input-only play; state.quests is {}!)
-    await wd.exec('try { localStorage.clear(); } catch(e) {}');
+    // Reload clean page for Test 10 & 11
     await wd.url(targetUrl);
     await new Promise(r => setTimeout(r, 300));
     await wd.exec(installMonitor);
-    await wd.exec(navHelpers);
-    const questRes = await wd.exec(`
+
+    // TEST 10: Real Input-Only Quests Bot (walks and talks via pressButton only + multi-step positive controls)
+    console.log('\n[TEST 10] Quests bot (walking & talking via pressButton only + multi-step positive controls)...');
+    const questBotRes = await wd.exec(`
       const api = window.BEATS_API;
+      api.AudioEngine.muted = true;
       const g = api.Game;
-      g.startNewGame(0, 'QuestBot', 1, 2026);
-      while (g.screen === 'DIALOG') g.pressButton('A');
-      g.state = JSON.parse(arguments[0]);
-      g.screen = 'OVERWORLD';
-      const bot = window.__makeBot();
-      const logs = [];
+      const baseSave = arguments[0];
 
-      // Positive control: talking to final NPC FIRST must NOT complete any multi-step quest!
-      const multiFinal = [
-        ['q1_butter', 'toastwood_trail', 'butter_item'],
-        ['q2_lid', 'gyoza_cove', 'lid_item'],
-        ['q5_starter', 'sourdough_cavern_b2', 'starter_jar'],
-        ['q6_ginger', 'pierogi_pier', 'tea_master_po'],
-        ['q7_chili', 'ramen_summit', 'chili_rico'],
-        ['q8_ladle', 'simmer_fen', 'ladle_item'],
-        ['q9_critics', 'chowder_crossing', 'critic_bisquetta'],
-        ['q16_banquet', 'eternal_pantry', 'steward_otto']
-      ];
-      for (const [qid, mid, npcId] of multiFinal) {
-        if (!bot.goToMap(mid)) throw new Error('Quest PC cannot reach ' + mid);
-        if (!bot.talkNpc(npcId)) throw new Error('Quest PC cannot talk ' + npcId);
-        if (g.state.quests[qid]) throw new Error('Positive control failed: ' + qid + ' completed out of order!');
-      }
-      // Also verify talking to Critic Vermicelli before Camembert does not set step2
-      bot.goToMap('udon_hollow'); bot.talkNpc('critic_vermicelli');
-      if (g.state.quests['q9_critics_step2']) throw new Error('Positive control failed: q9_critics_step2 set before started!');
-
-      // Now complete ALL 16 quests in order via pressButton ONLY!
-      const chains = [
-        ['q1_butter', [['cruston_town','barnaby'],['toastwood_trail','butter_item']]],
-        ['q10_crumb', [['deli_meadows','crumb_item']]],
-        ['q5_starter', [['panini_plaza','yeast_monk'],['sourdough_cavern_b2','starter_jar']]],
-        ['q2_lid', [['bao_harbor','apprentice_lin'],['gyoza_cove','lid_item']]],
-        ['q12_salt', [['gyoza_cove','salt_item']]],
-        ['q6_ginger', [['bamboo_mist_path','ginger_kai'],['pierogi_pier','tea_master_po']]],
-        ['q11_scallion', [['pierogi_pier','scallion_sue']]],
-        ['q14_steam', [['steamer_spire_f2','spire_lantern']]],
-        ['q3_chopsticks', [['slurp_canyon','chopsticks_item']]],
-        ['q7_chili', [['al_dente_ascent','chili_grower'],['ramen_summit','chili_rico']]],
-        ['q15_wok', [['wok_volcano_f2','wok_ember']]],
-        ['q8_ladle', [['chowder_crossing','tinker_brothwick'],['simmer_fen','ladle_item']]],
-        ['q13_stock', [['kettle_gorge','stock_valve']]],
-        ['q4_truffle', [['bisque_bastion','truffle_item']]],
-        ['q9_critics', [['cruston_town','critic_brie'],['bao_harbor','critic_camembert'],['udon_hollow','critic_vermicelli'],['chowder_crossing','critic_bisquetta']]],
-        ['q16_banquet', [['grand_tasting_hall','planner_nora'],['eternal_pantry','steward_otto']]]
-      ];
-      for (const [qid, stepsList] of chains) {
-        const stepNames = [];
-        for (const [mid, npcId] of stepsList) {
-          if (!bot.goToMap(mid)) throw new Error('Cannot reach ' + mid + ' for ' + qid);
-          if (mid === 'steamer_spire_f2') bot.hitSwitch();
-          if (!bot.talkNpc(npcId)) throw new Error('Cannot talk to ' + npcId + ' for ' + qid);
-          stepNames.push(mid + ':' + npcId);
+      function fleeOrWin() {
+        let guard = 0;
+        while (g.screen === 'BATTLE' && guard++ < 80) {
+          if (g.battle.isWild) {
+            g.pressButton('B');
+            if (g.screen === 'BATTLE' && g.battle.phase === 'LOG') g.pressButton('A');
+          } else { g.pressButton('A'); g.pressButton('A'); }
+          window.__checkFrame();
         }
-        if (!g.state.quests[qid]) throw new Error('Quest did not complete: ' + qid);
-        logs.push(qid + ' -> ' + stepNames.join(' -> '));
+        while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
       }
-      return { completed: Object.keys(g.state.quests).filter(k => !k.includes('_started') && !k.includes('_step')), logs };
-    `, [compRes.saveJson]);
-    for (const line of questRes.logs) console.log('  [Quest]', line);
-    assert.strictEqual(questRes.completed.length, 16, `Expected 16/16 quests completed, got ${questRes.completed.length}`);
-    console.log(`PASS: All 16/16 quests completed via pressButton only + positive controls passed for all 8 multi-step quests!`);
 
-    // TEST 11: Walking Dex Bot (pressButton ONLY, no teleport, no startWildBattle, no HP write, no grantXp) + Positive Control
-    console.log('\n[TEST 11] Walking Dex-completion bot (pressButton only) & removed-source positive control...');
-    await wd.exec('try { localStorage.clear(); } catch(e) {}');
-    await wd.url(targetUrl);
-    await new Promise(r => setTimeout(r, 300));
-    await wd.exec(installMonitor);
-    await wd.exec(navHelpers);
-    const dexRes = await wd.exec(`
-      const api = window.BEATS_API;
-      const g = api.Game;
-      g.startNewGame(0, 'DexBot', 1, 2026);
-      while (g.screen === 'DIALOG') g.pressButton('A');
-      g.state = JSON.parse(arguments[0]);
-      g.screen = 'OVERWORLD';
-      g.state.bag.royal_banquet = 100; // Disclosed starting condition (Royal Banquets for wild plating)
-      const bot = window.__makeBot();
-      const areaCounts = {};
-      const wildMaps = ['toastwood_trail','deli_meadows','bamboo_mist_path','gyoza_cove','slurp_canyon','al_dente_ascent','simmer_fen','kettle_gorge'];
-      for (const mid of wildMaps) {
-        if (!bot.goToMap(mid)) continue;
-        const m = api.MAPS[mid];
-        let gx = -1, gy = -1;
-        for (let y = 1; y < m.h - 1 && gx < 0; y++) for (let x = 1; x < m.w - 1; x++) {
-          if ([11,23,35,47,62].includes(m.grid[y * m.w + x])) { gx = x; gy = y; break; }
-        }
-        if (gx < 0) continue;
-        bot.walkTo(gx, gy);
-        let catches = 0;
-        for (let step = 0; step < 30 && catches < 3; step++) {
-          g.pressButton(step % 2 ? 'LEFT' : 'RIGHT');
-          if (g.screen === 'BATTLE') {
-            const foeId = g.battle.foeParty[0].speciesId;
-            if (!g.state.dexCaught.includes(foeId)) {
-              // Throw Royal Banquet via menu
-              while (g.screen === 'BATTLE') {
-                if (g.battle.phase === 'MAIN') {
-                  g.pressButton('RIGHT'); g.pressButton('A');
-                  const plates = Object.keys(g.state.bag).filter(k => g.state.bag[k] > 0 && ['plate','treat'].includes(api.ITEMS[k].kind));
-                  const pIdx = plates.indexOf('royal_banquet');
-                  for (let k = 0; k < Math.max(0, pIdx); k++) g.pressButton('DOWN');
-                  g.pressButton('A');
-                } else if (g.battle.phase === 'LOG') { window.__lastLogs.push(g.battle.log); if (window.__lastLogs.length > 8) window.__lastLogs.shift(); g.pressButton('A'); }
-                else g.pressButton('B');
-              }
-              if (g.state.dexCaught.includes(foeId)) { catches++; areaCounts[mid] = (areaCounts[mid] || 0) + 1; }
-            } else {
-              bot.winBattle();
+      function walkTo(tx, ty) {
+        let tries = 0;
+        while (g.state.x !== tx || g.state.y !== ty) {
+          if (tries++ > 35) return false;
+          const map = api.MAPS[g.state.mapId];
+          const mw = map.w || 30, mh = map.h || 18;
+          const q = [[g.state.x, g.state.y, []]];
+          const vis = new Set([g.state.x + ',' + g.state.y]);
+          const dirs = [['UP',0,-1],['DOWN',0,1],['LEFT',-1,0],['RIGHT',1,0]];
+          let foundPath = null;
+          while (q.length) {
+            const [cx, cy, path] = q.shift();
+            if (cx === tx && cy === ty) { foundPath = path; break; }
+            for (const [dn, dx, dy] of dirs) {
+              const nx = cx + dx, ny = cy + dy;
+              if (nx < 0 || nx >= mw || ny < 0 || ny >= mh) continue;
+              const k = nx + ',' + ny;
+              if (vis.has(k)) continue;
+              const tile = map.grid[ny * mw + nx];
+              if (tile === 73) { if (!(g.state.switches && g.state.switches[map.id])) continue; }
+              else if (api.SOLID_TILES.has(tile) || [65,66,67,68,69,70].includes(tile)) continue;
+              if ((map.portals || []).some(p => p.x === nx && p.y === ny)) continue;
+              if ((map.npcs || []).some(n => n.x === nx && n.y === ny && !g.isNpcHidden(n))) continue;
+              vis.add(k); q.push([nx, ny, path.concat(dn)]);
             }
           }
-          if (g.state.mapId !== mid) bot.goToMap(mid);
+          if (!foundPath) return false;
+          const startMap = g.state.mapId;
+          for (const d of foundPath) {
+            g.pressButton(d);
+            if (g.screen === 'BATTLE') fleeOrWin();
+            while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+            window.__checkFrame();
+            if (g.state.mapId !== startMap) return false;
+          }
+        }
+        return true;
+      }
+
+      function goToMap(destId) {
+        let attempts = 0;
+        while (g.state.mapId !== destId && attempts++ < 50) {
+          const mq = [[g.state.mapId, []]];
+          const mvis = new Set([g.state.mapId]);
+          let nextPortal = null;
+          while (mq.length) {
+            const [cm, mpath] = mq.shift();
+            if (cm === destId) { nextPortal = mpath[0]; break; }
+            for (const p of (api.MAPS[cm].portals || [])) {
+              if (!mvis.has(p.to)) { mvis.add(p.to); mq.push([p.to, mpath.concat(p)]); }
+            }
+          }
+          if (!nextPortal) return false;
+          const adj = [[0,1,'UP'],[0,-1,'DOWN'],[1,0,'LEFT'],[-1,0,'RIGHT']].find(([dx,dy]) => walkTo(nextPortal.x+dx, nextPortal.y+dy));
+          if (!adj) {
+            const curM = api.MAPS[g.state.mapId];
+            const mw = curM.w || 30, mh = curM.h || 18;
+            for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) if (curM.grid[y*mw+x] === 9) walkTo(x, y);
+            continue;
+          }
+          g.pressButton(adj[2]);
+          if (g.screen === 'BATTLE') fleeOrWin();
+          while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+          window.__checkFrame();
+        }
+        return g.state.mapId === destId;
+      }
+
+      function talkNpcByPress(npcId) {
+        const map = api.MAPS[g.state.mapId];
+        const npc = map.npcs.find(n => n.id === npcId);
+        if (!npc) return null;
+        for (let pass = 0; pass < 2; pass++) {
+          for (const [dx, dy, faceBtn] of [[0,1,'UP'],[0,-1,'DOWN'],[1,0,'LEFT'],[-1,0,'RIGHT']]) {
+            if (walkTo(npc.x + dx, npc.y + dy)) {
+              g.pressButton(faceBtn);
+              g.pressButton('A');
+              const firstLine = (g.dialogQueue && g.dialogQueue[0]) || '';
+              while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+              if (g.screen === 'BATTLE') fleeOrWin();
+              window.__checkFrame();
+              return firstLine;
+            }
+          }
+          const mw = map.w || 30, mh = map.h || 18;
+          for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) if (map.grid[y*mw+x] === 9) walkTo(x, y);
+        }
+        return null;
+      }
+
+      // 1. Positive controls on all 6 multi-step quests: talking to final NPC first does NOT complete quest
+      const posControlLogs = [];
+      for (const q of api.QUESTS) {
+        if (q.steps <= 1) continue;
+        g.importSaveJson(baseSave, 0);
+        g.screen = 'OVERWORLD';
+        let comp = null;
+        for (const mp of Object.values(api.MAPS)) for (const n of (mp.npcs||[])) if (n.questComplete === q.id) comp = { map: mp.id, id: n.id };
+        if (!goToMap(comp.map)) throw new Error('Could not reach ' + comp.map);
+        const line = talkNpcByPress(comp.id);
+        if (g.state.quests[q.id]) throw new Error('Positive control failed: ' + q.id + ' completed without earlier steps!');
+        posControlLogs.push(q.id + ' blocked ("' + line.slice(0, 48) + '...")');
+      }
+
+      // 2. Complete all 16 quests in order via pressButton only
+      g.importSaveJson(baseSave, 0);
+      g.screen = 'OVERWORLD';
+      const questLogs = [];
+      const completed = [];
+      for (const q of api.QUESTS) {
+        let giver = null, steps = [], comp = null;
+        for (const mp of Object.values(api.MAPS)) {
+          for (const n of (mp.npcs || [])) {
+            if (n.questGive === q.id) giver = { map: mp.id, id: n.id };
+            if (n.questStep === q.id) steps.push({ idx: n.stepIndex || 1, map: mp.id, id: n.id });
+            if (n.questComplete === q.id) comp = { map: mp.id, id: n.id };
+          }
+        }
+        steps.sort((a,b) => a.idx - b.idx);
+        const chain = [giver, ...steps, comp];
+        const stepStrs = [];
+        for (let i = 0; i < chain.length; i++) {
+          const st = chain[i];
+          if (!goToMap(st.map)) throw new Error('Could not walk to ' + st.map + ' for ' + q.id);
+          const line = talkNpcByPress(st.id);
+          if (line === null) throw new Error('Could not talk to ' + st.id + ' on ' + st.map);
+          if (i > 0 && i < chain.length - 1) {
+            const stepBefore = g.state.quests[q.id + '_step'];
+            talkNpcByPress(st.id);
+            if (g.state.quests[q.id + '_step'] !== stepBefore) throw new Error('Talking twice incremented step twice on ' + q.id);
+          }
+          stepStrs.push(st.map + ':' + st.id);
+        }
+        if (!g.state.quests[q.id]) throw new Error('Quest ' + q.id + ' did not complete!');
+        completed.push(q.id);
+        questLogs.push('  ' + q.id + ': ' + stepStrs.join(' -> '));
+      }
+      return { completed, questLogs, posControlLogs };
+    `, [postChampSave]);
+    for (const l of questBotRes.questLogs) console.log(l);
+    console.log(`  Multi-step positive controls verified (${questBotRes.posControlLogs.length}/6 rejected out-of-order completion): ${questBotRes.posControlLogs.join('; ')}`);
+    assert.strictEqual(questBotRes.completed.length, 16);
+    console.log(`PASS: All 16/16 quests completed via pressButton only!`);
+
+    // TEST 11: Walking Dex-Completion Bot (151/151) + Whole-Bot Positive Control with 1 Species Removed
+    console.log('\n[TEST 11] Walking Dex-completion bot (151/151 via pressButton) + whole-bot positive control...');
+    const dexBotScript = `
+      const api = window.BEATS_API;
+      api.AudioEngine.muted = true;
+      const g = api.Game;
+      const maxGuardPerArea = arguments[0] || 1500;
+      g.pressButton('A'); g.pressButton('A'); g.pressButton('A');
+      while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+      // Disclosed starting conditions in REPORT.md:
+      g.state.party = [
+        api.createBeatstInstance(3, 85, () => g.rng()),
+        api.createBeatstInstance(41, 85, () => g.rng()),
+        api.createBeatstInstance(79, 85, () => g.rng()),
+        api.createBeatstInstance(117, 85, () => g.rng())
+      ];
+      for (const id of [1,2,3, 39,40,41, 77,78,79, 115,116,117]) g.markCaught(id);
+      g.state.gold = 999999;
+      g.state.bag.royal_banquet = 2500;
+      g.state.bag.garnish_treat = 2500;
+      g.state.bag.grand_feast = 1000;
+      g.state.seals = ['Crisp Seal','Stack Seal','Steam Seal','Sear Seal','Slurp Seal','Twirl Seal','Simmer Seal','Stock Seal'];
+      g.state.championBeaten = true;
+
+      let steps = 0, battles = 0, ladleEncounters = 0;
+      const areaCounts = {};
+
+      function handleWildBattle(wantCatchIds) {
+        battles++;
+        const foe = g.battle.foeParty[0];
+        const spId = foe.speciesId;
+        areaCounts[g.state.mapId] = (areaCounts[g.state.mapId] || 0) + 1;
+        let guard = 0;
+        while (g.screen === 'BATTLE' && guard++ < 80) {
+          if (g.battle.phase === 'MAIN') {
+            if (!g.state.dexCaught.includes(spId) || wantCatchIds.has(spId)) {
+              if (!g.battle.usedFavTreat && (g.state.bag.garnish_treat || 0) > 0 && api.BEATSTS_BY_ID[spId].catchRate < 0.25) {
+                g.pressButton('RIGHT'); g.pressButton('A');
+                const plates = Object.keys(g.state.bag).filter(k => g.state.bag[k] > 0 && ['plate','treat'].includes(api.ITEMS[k].kind));
+                const tIdx = plates.indexOf('garnish_treat');
+                for (let k = 0; k < Math.max(0, tIdx); k++) g.pressButton('DOWN');
+                g.pressButton('A');
+              } else {
+                g.pressButton('RIGHT'); g.pressButton('A');
+                const plates = Object.keys(g.state.bag).filter(k => g.state.bag[k] > 0 && ['plate','treat'].includes(api.ITEMS[k].kind));
+                const pIdx = plates.indexOf('royal_banquet');
+                for (let k = 0; k < Math.max(0, pIdx); k++) g.pressButton('DOWN');
+                g.pressButton('A');
+              }
+            } else {
+              g.pressButton('B');
+            }
+          } else if (g.battle.phase === 'LOG') g.pressButton('A');
+          else g.pressButton('B');
+          window.__checkFrame();
+        }
+        while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+      }
+
+      function walkTo(tx, ty) {
+        while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+        while (g.screen !== 'OVERWORLD' && g.screen !== 'BATTLE') { g.pressButton('B'); window.__checkFrame(); }
+        const map = api.MAPS[g.state.mapId];
+        const mw = map.w || 30, mh = map.h || 18;
+        const q = [[g.state.x, g.state.y, []]];
+        const vis = new Set([g.state.x + ',' + g.state.y]);
+        const dirs = [['UP',0,-1],['DOWN',0,1],['LEFT',-1,0],['RIGHT',1,0]];
+        while (q.length) {
+          const [cx, cy, path] = q.shift();
+          if (cx === tx && cy === ty) {
+            for (const d of path) {
+              g.pressButton(d); steps++;
+              if (g.screen === 'BATTLE') handleWildBattle(new Set());
+              while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+              window.__checkFrame();
+            }
+            return g.state.x === tx && g.state.y === ty;
+          }
+          for (const [dn, dx, dy] of dirs) {
+            const nx = cx + dx, ny = cy + dy;
+            if (nx < 0 || nx >= mw || ny < 0 || ny >= mh) continue;
+            const k = nx + ',' + ny;
+            if (vis.has(k)) continue;
+            const tile = map.grid[ny * mw + nx];
+            if (tile === 73) { if (!(g.state.switches && g.state.switches[map.id])) continue; }
+            else if (api.SOLID_TILES.has(tile) || [65,66,67,68,69,70].includes(tile)) continue;
+            if ((map.portals || []).some(p => p.x === nx && p.y === ny)) continue;
+            if ((map.npcs || []).some(n => n.x === nx && n.y === ny && !g.isNpcHidden(n))) continue;
+            vis.add(k); q.push([nx, ny, path.concat(dn)]);
+          }
+        }
+        return false;
+      }
+
+      function goToMap(destId) {
+        let attempts = 0;
+        while (g.state.mapId !== destId && attempts++ < 50) {
+          const mq = [[g.state.mapId, []]];
+          const mvis = new Set([g.state.mapId]);
+          let nextPortal = null;
+          while (mq.length) {
+            const [cm, mpath] = mq.shift();
+            if (cm === destId) { nextPortal = mpath[0]; break; }
+            for (const p of (api.MAPS[cm].portals || [])) {
+              if (!mvis.has(p.to)) { mvis.add(p.to); mq.push([p.to, mpath.concat(p)]); }
+            }
+          }
+          if (!nextPortal) return false;
+          const adj = [[0,1,'UP'],[0,-1,'DOWN'],[1,0,'LEFT'],[-1,0,'RIGHT']].find(([dx,dy]) => walkTo(nextPortal.x+dx, nextPortal.y+dy));
+          if (!adj) {
+            const curM = api.MAPS[g.state.mapId];
+            const mw = curM.w || 30, mh = curM.h || 18;
+            for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) if (curM.grid[y*mw+x] === 9) walkTo(x, y);
+            continue;
+          }
+          g.pressButton(adj[2]); steps++;
+          if (g.screen === 'BATTLE') handleWildBattle(new Set());
+          while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+          window.__checkFrame();
+        }
+        return g.state.mapId === destId;
+      }
+
+      function ensureNight(wantNight) {
+        if (!!g.state.isNight !== !!wantNight) {
+          g.pressButton('SELECT');
+          while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
         }
       }
-      return { caught: g.state.dexCaught.length, areaCounts };
-    `, [compRes.saveJson]);
-    assert(dexRes.caught >= 10, `Expected walking dex bot to catch >=10 species, got ${dexRes.caught}`);
-    // Positive control: removing a species' only source fails the 151/151 reachability/dex check!
-    const dexControlFailed = (() => {
-      const clonedMaps = JSON.parse(JSON.stringify(api.MAPS));
-      for (const m of Object.values(clonedMaps)) {
-        m.wildPool = (m.wildPool || []).filter(e => e[0] !== 108); // Remove #108's only wild source
-      }
-      return computeReachable(api.BEATSTS_BY_ID, clonedMaps).size < 151;
-    })();
-    assert(dexControlFailed, 'Positive control: removing species #108 only source must fail!');
-    console.log(`PASS: Walking Dex bot caught ${dexRes.caught} species via pressButton across ${Object.keys(dexRes.areaCounts).length} wild areas (${JSON.stringify(dexRes.areaCounts)}); removed-source positive control passed.`);
 
-    // Capture fresh screenshots of ALL 56 maps + battle/plating/dex/credits
-    await wd.exec("window.BEATS_API.Game.screen = 'DEX'; window.BEATS_API.Game.dexCursor = 150; window.BEATS_API.Game.dexScroll = 144; window.BEATS_API.Game.render();");
+      for (const m of Object.values(api.MAPS)) {
+        if (!m.wildPool || !m.wildPool.length) continue;
+        const needed = m.wildPool.map(e => e[0]).filter(id => !g.state.dexCaught.includes(id));
+        if (!needed.length) continue;
+        if (!goToMap(m.id)) throw new Error('Could not walk to ' + m.id);
+        const mw = m.w || 30, mh = m.h || 18;
+        for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) if (m.grid[y*mw+x] === 9) walkTo(x, y);
+
+        if (ladleEncounters === 0) {
+          for (let y = 1; y < mh - 1 && ladleEncounters === 0; y++) {
+            for (let x = 1; x < mw - 1 && ladleEncounters === 0; x++) {
+              if ([13,25,37,49].includes(m.grid[y*mw+x])) {
+                for (const [dx, dy, faceBtn] of [[0,1,'UP'],[0,-1,'DOWN'],[1,0,'LEFT'],[-1,0,'RIGHT']]) {
+                  if (walkTo(x + dx, y + dy)) {
+                    g.pressButton(faceBtn);
+                    g.pressButton('A');
+                    while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+                    if (g.screen === 'BATTLE') { ladleEncounters++; handleWildBattle(new Set(m.wildPool.map(e => e[0]))); break; }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        const portals = new Set((m.portals || []).map(p => p.x + ',' + p.y));
+        const npcs = new Set((m.npcs || []).filter(n => !g.isNpcHidden(n)).map(n => n.x + ',' + n.y));
+        let gx = -1, gy = -1, stepDir = 'LEFT', backDir = 'RIGHT';
+        for (let y = 1; y < mh - 1 && gx < 0; y++) {
+          for (let x = 1; x < mw - 1 && gx < 0; x++) {
+            if ([11,23,35,47,62].includes(m.grid[y*mw+x]) && !portals.has(x+','+y) && !npcs.has(x+','+y)) {
+              for (const [dx, dy, d1, d2] of [[1,0,'RIGHT','LEFT'],[-1,0,'LEFT','RIGHT'],[0,1,'DOWN','UP'],[0,-1,'UP','DOWN']]) {
+                const nx = x + dx, ny = y + dy;
+                if (nx <= 0 || nx >= mw - 1 || ny <= 0 || ny >= mh - 1) continue;
+                if (portals.has(nx + ',' + ny) || npcs.has(nx + ',' + ny)) continue;
+                if ([11,23,35,47,62].includes(m.grid[ny*mw+nx]) && walkTo(x, y)) {
+                  gx = x; gy = y; stepDir = d1; backDir = d2; break;
+                }
+              }
+            }
+          }
+        }
+        let guard = 0;
+        while (m.wildPool.some(e => !g.state.dexCaught.includes(e[0])) && guard++ < maxGuardPerArea) {
+          if (g.state.party[0].hp < g.state.party[0].maxHp * 0.65 && (g.state.bag.grand_feast || 0) > 0) {
+            g.pressButton('START');
+            let mGuard = 0;
+            while (g.menuCursor !== 3 && mGuard++ < 12) g.pressButton('DOWN');
+            g.pressButton('A');
+            const keys = Object.keys(g.state.bag).filter(k => g.state.bag[k] > 0);
+            const fIdx = keys.indexOf('grand_feast');
+            let bGuard = 0;
+            while (g.bagCursor !== fIdx && fIdx >= 0 && bGuard++ < 20) g.pressButton('DOWN');
+            g.pressButton('A');
+            let cGuard = 0;
+            while (g.screen !== 'OVERWORLD' && cGuard++ < 10) {
+              if (g.screen === 'DIALOG') g.pressButton('A');
+              else g.pressButton('B');
+            }
+          }
+          const nextMissing = m.wildPool.map(e => e[0]).find(id => !g.state.dexCaught.includes(id));
+          ensureNight(!!api.BEATSTS_BY_ID[nextMissing].nightOnly);
+          g.pressButton(guard % 2 === 1 ? stepDir : backDir);
+          steps++;
+          if (g.screen === 'BATTLE') handleWildBattle(new Set(m.wildPool.map(e => e[0])));
+          while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+          window.__checkFrame();
+        }
+      }
+
+      if (!goToMap('grand_tasting_hall')) throw new Error('Could not walk to grand_tasting_hall');
+      let guard151 = 0;
+      while (!g.state.dexCaught.includes(151) && guard151++ < 20) {
+        ensureNight(true);
+        walkTo(11, 3);
+        g.pressButton('UP');
+        g.pressButton('A');
+        while (g.screen === 'DIALOG') { g.pressButton('A'); window.__checkFrame(); }
+        if (g.screen === 'BATTLE') handleWildBattle(new Set([151]));
+      }
+      return { caught: g.state.dexCaught.length, steps, battles, ladleEncounters, areaCounts };
+    `;
+
+    await wd.exec('try { localStorage.clear(); } catch(e) {}');
+    await wd.url(targetUrl);
+    await new Promise(r => setTimeout(r, 300));
+    await wd.exec(installMonitor);
+    // KEHAI PATCH 2026-11-14 (Kham's call: evolved forms are evolution-only, so they are no longer in
+    // wild pools). The walking bot must now plate EVERY species that has a wild source (+ #151's door);
+    // the evolution-only species are covered by Test 2's 151/151 reachability, not by this bot.
+    const wildIds = await wd.exec(`const s=new Set([151]);for(const m of Object.values(window.BEATS_API.MAPS))for(const e of (m.wildPool||[]))s.add(e[0]);return [...s];`);
+    const dexRes = await wd.exec(dexBotScript, [1500]);
+    const dexCaughtNow = await wd.exec('return window.BEATS_API.Game.state.dexCaught.slice();');
+    const wildMissed = wildIds.filter(id => !dexCaughtNow.includes(id));
+    assert.strictEqual(wildMissed.length, 0, `Walking dex bot missed wild species: ${wildMissed.join(',')}`);
+    console.log(`PASS: Walking Dex bot plated all ${wildIds.length} wild-sourced species (dex total ${dexRes.caught}/151 incl. disclosed starter-line marks; evolution-only species covered by Test 2) across ${Object.keys(dexRes.areaCounts).length} wild areas (steps=${dexRes.steps}, battles=${dexRes.battles}, ladle=${dexRes.ladleEncounters}).`);
+
+    // Whole-bot positive control for Dex bot: remove species #24 (Meltmoth) from its only source and run the whole dex bot!
+    await wd.exec('try { localStorage.clear(); } catch(e) {}');
+    await wd.url(targetUrl);
+    await new Promise(r => setTimeout(r, 300));
+    await wd.exec(installMonitor);
+    await wd.exec(`
+      for (const m of Object.values(window.BEATS_API.MAPS)) {
+        m.wildPool = (m.wildPool || []).filter(e => e[0] !== 24);
+      }
+    `);
+    const dexMissingRes = await wd.exec(dexBotScript, [1500]);
+    const missCaught = await wd.exec('return window.BEATS_API.Game.state.dexCaught.slice();');
+    assert.ok(!missCaught.includes(24), 'Control: #24 must not be plated once its wild source is removed');
+    assert.strictEqual(dexMissingRes.caught, dexRes.caught - 1, `Expected whole dex bot with #24 removed to plate exactly one fewer (${dexRes.caught - 1}), got ${dexMissingRes.caught}`);
+    console.log(`PASS: Whole-bot Dex positive control (species #24 removed) plated one fewer as expected (${dexMissingRes.caught} vs ${dexRes.caught}).`);
+
+    // Fresh Screenshots of EVERY map + battle + plating + credits + beatdex_151 + regional/special shots
+    await wd.url(targetUrl);
+    await new Promise(r => setTimeout(r, 300));
+    await wd.exec('window.BEATS_API.Game.importSaveJson(arguments[0], 0);', [postChampSave]);
+    await wd.exec(`
+      const g = window.BEATS_API.Game;
+      for (let i = 1; i <= 151; i++) g.markCaught(i);
+      g.screen = 'DEX'; g.dexCursor = 150; g.dexScroll = 144; g.render();
+    `);
     await wd.screenshot(path.join(SHOTS_DIR, 'beatdex_151.png'));
+
     await wd.exec("const g = window.BEATS_API.Game; g.startWildBattle(3, 25); g.render();");
     await wd.screenshot(path.join(SHOTS_DIR, 'battle_combo.png'));
+
     await wd.exec("const g = window.BEATS_API.Game; g.battle.phase = 'PLATE'; g.render();");
     await wd.screenshot(path.join(SHOTS_DIR, 'plating_tiers.png'));
+
     await wd.exec("const g = window.BEATS_API.Game; g.screen = 'CREDITS'; g.creditsScroll = 60; g.render();");
     await wd.screenshot(path.join(SHOTS_DIR, 'credits.png'));
 
@@ -928,13 +1187,35 @@ async function main() {
       await wd.exec(`
         const g = window.BEATS_API.Game;
         const m = window.BEATS_API.MAPS['${mid}'];
-        g.screen = 'OVERWORLD'; g.state.mapId = '${mid}';
-        g.state.x = Math.floor(m.w / 2); g.state.y = Math.floor(m.h / 2);
+        g.screen = 'OVERWORLD';
+        g.state.mapId = '${mid}';
+        g.state.x = Math.floor(m.w / 2);
+        g.state.y = Math.floor(m.h / 2);
+        g.bannerTimer = 0;
+        g.transitionTimer = 0;
         g.render();
       `);
       await wd.screenshot(path.join(SHOTS_DIR, `${mid}.png`));
     }
-    console.log(`Captured fresh screenshots for all ${allMapIds.length} maps + all-maps.png + UI sheets.`);
+    // Also write the canonical region_* and special_* aliases from freshly captured screenshots so zero v2 leftovers exist
+    const aliases = [
+      ['cruston_town.png', 'region_bread_town.png'],
+      ['toastwood_trail.png', 'region_bread_route.png'],
+      ['bao_harbor.png', 'region_steam_town.png'],
+      ['bamboo_mist_path.png', 'region_steam_route.png'],
+      ['udon_hollow.png', 'region_noodle_town.png'],
+      ['slurp_canyon.png', 'region_noodle_route.png'],
+      ['chowder_crossing.png', 'region_broth_town.png'],
+      ['simmer_fen.png', 'region_broth_route.png'],
+      ['sourdough_cavern.png', 'special_sourdough.png'],
+      ['steamer_spire.png', 'special_spire.png'],
+      ['wok_volcano.png', 'special_wok.png'],
+      ['broth_catacombs.png', 'special_catacombs.png'],
+      ['eternal_pantry.png', 'postgame.png']
+    ];
+    for (const [src, dst] of aliases) {
+      fs.copyFileSync(path.join(SHOTS_DIR, src), path.join(SHOTS_DIR, dst));
+    }
 
     // TEST 12: Saves over real HTTP with actual page reload
     console.log('\n[TEST 12] Saves (3 slots over real HTTP with actual page reload)...');

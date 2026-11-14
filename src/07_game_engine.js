@@ -765,49 +765,56 @@ const Game = {
       return;
     }
     if (npc.questGive) {
-      if (this.state.quests[npc.questGive]) {
-        this.showDialog(npc.doneLines || ['Thank you again for your help!']);
+      const qid = npc.questGive;
+      if (this.state.quests[qid]) {
+        this.showDialog(npc.doneLines || [`${npc.name}: Thank you again for your help!`]);
         return;
       }
-      this.state.quests[npc.questGive + '_started'] = true;
+      if (!this.state.quests[qid + '_started']) {
+        this.state.quests[qid + '_started'] = true;
+        this.state.quests[qid + '_step'] = 0;
+      }
       this.showDialog(npc.lines);
       return;
     }
     if (npc.questStep) {
       const qid = npc.questStep;
-      const stepIdx = npc.stepIndex || 1;
-      if (!this.state.quests[qid + '_started']) {
-        this.showDialog(npc.notStartedMsg || 'Speak with the quest organizer before checking in here!');
+      const idx = npc.stepIndex || 1;
+      const curStep = this.state.quests[qid + '_step'] || 0;
+      if (this.state.quests[qid]) {
+        this.showDialog(npc.doneLines || [`${npc.name}: That quest is already complete!`]);
         return;
       }
-      for (let s = 1; s < stepIdx; s++) {
-        if (!this.state.quests[qid + '_step' + s]) {
-          this.showDialog(npc.notReadyMsg || 'You have an earlier stop to visit first!');
-          return;
-        }
+      if (!this.state.quests[qid + '_started']) {
+        this.showDialog(npc.notReadyLines || [`${npc.name}: You haven't started this errand yet!`]);
+        return;
       }
-      this.state.quests[qid + '_step' + stepIdx] = true;
-      this.showDialog(npc.lines);
+      if (curStep < idx - 1) {
+        this.showDialog(npc.notReadyLines || [`${npc.name}: You missed an earlier stop on this quest!`]);
+        return;
+      }
+      if (curStep === idx - 1) {
+        this.state.quests[qid + '_step'] = idx;
+        this.state.quests[qid + '_step' + idx] = true;
+        AudioEngine.playSfx('menu_select');
+        this.showDialog(npc.lines);
+      } else {
+        this.showDialog(npc.alreadyLines || npc.lines);
+      }
       return;
     }
     if (npc.questComplete) {
       const qid = npc.questComplete;
-      if (this.state.quests[qid]) {
-        this.showDialog(npc.doneLines || ['Already completed!']);
+      const qDef = (typeof QUESTS !== 'undefined' ? QUESTS : []).find(q => q.id === qid);
+      const reqSteps = qDef ? Math.max(0, (qDef.steps || 1) - 1) : 0;
+      const curStep = this.state.quests[qid + '_step'] || 0;
+      if (!this.state.quests[qid + '_started']) {
+        this.showDialog(npc.notStartedLines || npc.notReadyLines || [`${npc.name}: Someone is looking for this, but you haven't taken their request yet!`]);
         return;
       }
-      const qDef = QUESTS.find(q => q.id === qid);
-      const reqStarted = npc.reqStarted !== undefined ? npc.reqStarted : !!(qDef && qDef.reqStarted);
-      const reqSteps = npc.reqSteps !== undefined ? npc.reqSteps : (qDef ? (qDef.reqSteps || 0) : 0);
-      if (reqStarted && !this.state.quests[qid + '_started']) {
-        this.showDialog(npc.notStartedMsg || "You haven't started this quest yet!");
+      if (curStep < reqSteps) {
+        this.showDialog(npc.notReadyLines || [`${npc.name}: You haven't completed all the earlier steps yet!`]);
         return;
-      }
-      for (let s = 1; s <= reqSteps; s++) {
-        if (!this.state.quests[qid + '_step' + s]) {
-          this.showDialog(npc.notReadyMsg || "You haven't finished all the earlier steps yet!");
-          return;
-        }
       }
       this.state.quests[qid] = true;
       this.grantQuestReward(qid);
