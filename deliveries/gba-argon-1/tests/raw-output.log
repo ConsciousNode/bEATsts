@@ -1,0 +1,85 @@
+================================================================================
+bEATsts GBA - Complete Automated Test Suite (Tests 1..10 + Positive Controls)
+================================================================================
+
+[TEST 1] Build determinism, GBA header checksum, SRAM_V string, SWI 0x05 scan & memory budget...
+  ROM Size        : 846192 bytes (826.4 KB / 32708240 bytes free of 32 MB)
+  ROM CRC32       : 0xB177285D
+  ROM SHA-256     : 193e5521e9d119367921ecb86bc85cd0d9e84ab26d0a12cf91347a5b9b99b6c0
+  Header Checksum : 0x39 (valid, title="BEATSTS22", gameCode="ABEE", maker="CN")
+  Save ID String  : "SRAM_V113" at ROM offset 0xC8
+  SWI Instructions: 1 found (0x08005414:SWI 0x05) -> ONLY SWI 0x05 called
+  EWRAM Budget    : 11264 B used / 250880 B free (of 262144 B)
+  IWRAM Budget    : 1024 B used / 31744 B free (of 32768 B)
+  VRAM Budget     : 24576 B used / 73728 B free (of 98304 B)
+  SRAM Budget     : 12288 B used (3 x 4,096 B slots) / 20480 B free (of 32768 B)
+PASS [TEST 1]: Deterministic byte-for-byte build, valid header, SRAM_V113, and SWI 0x05 verified.
+
+[TEST 2] Data equality across all 17 ROM tables vs BEATS_API + positive control ROM...
+  Verified 17/17 ROM tables from Table Directory (0x08020000):
+    151 species (stats, learnsets, 32x32 front/back 4bpp sprites, 15-bit palettes), 124 moves, 12x12 type chart,
+    34 flavor combos, 74 8x8 map tiles, 47 char sprites, 25 items, 5 regional shops, 56 maps (26019 tiles,
+    110 portals, 311 NPCs, 691 dialogue lines, 23 signs), 33 trainers, 16 quests, 12 secrets, 18 music tracks, 12 SFX.
+  Differences on beatsts.gba: 0 (100% equal)
+  Positive Control (tests/controls/control_move_power.gba): CAUGHT -> Move #1 (Panini Press): ROM power=66 vs REF power=65
+PASS [TEST 2]: 100% data equality verified + positive control failed as expected.
+
+[TEST 3] Battle differential (2,000 seeded battles + STAB=1.4 & RNG-skip positive control ROMs)...
+  Seeded Battles Run        : 2000 (wild & trainer, day & night, all 151 species, moves, plating, bag, switch)
+  Total Input Steps Verified: 24434
+  Total Battle PRNG Draws   : 11198 (100% bit-exact match)
+  Positive Control A (STAB=1.4, tests/controls/control_stab_14.gba) : CAUGHT -> Battle #3 step 3 (A): party[0] ROM=(hp:68,lv:26) vs REF=(hp:69,lv:26)
+  Positive Control B (RNG-skip, tests/controls/control_rng_skip.gba): CAUGHT -> Battle #0 step 6 (A): RNG draws ROM=5 vs REF=1
+PASS [TEST 3]: 2,000/2,000 seeded battles matched event-for-event + both positive controls failed as expected.
+
+[TEST 4] Overworld completion bot differential (fresh game -> 8 seals -> credits -> postgame), hold-to-walk speed & 9-seals control ROM...
+  Button Presses Replayed   : 3701 (7403 GBA frames)
+  Map Changes Verified      : 97 (100% mailbox match)
+  Battles Verified          : 75 (100% mailbox match)
+  Hold-to-Walk Speed        : 1 tap = 1 tile; 1.0s (60-frame) hold = 7 tiles/s (1 step / 9 frames = 6.67 tiles/s steady-state + initial keydown step = 7 tiles in 1.0s)
+  Reached Credits & Postgame: YES (screen=CREDITS -> map=eternal_pantry, seals=8/8, gold=26190, lead=#3 L84)
+  Reference Page Errors     : 0
+  ROM Lag Counter           : 0 (max loading frames per transition = 1 <= 30)
+  Positive Control (tests/controls/control_9_seals.gba): CAUGHT -> blocked at press #3469 (UP) at Grand Tasting Hall portal in bisque_bastion (17,1) with 8/9 seals (screen=DIALOG); replay ends in bisque_bastion (21,1), championBeaten=0, reachedCredits=false
+PASS [TEST 4]: Overworld completion bot differential matched 100% + 9-seals positive control stopped short in bisque_bastion.
+
+[TEST 5] Quests differential (all 16 quests in order + 6 multi-step out-of-order positive controls)...
+  Quests Completed in Order : 16/16 (questsDoneMask=0xFFFF, questStateHash=0xC76C5369, gold=30840)
+  Out-of-Order Controls (6) : ALL BLOCKED -> q5_starter (starter_jar@sourdough_cavern_b2), q6_ginger (tea_master_po@pierogi_pier), q7_chili (chili_rico@ramen_summit), q8_ladle (ladle_item@simmer_fen), q9_critics (critic_bisquetta@chowder_crossing), q16_banquet (steward_otto@eternal_pantry)
+  Quest Bot Presses & Lag   : 4506 presses, lagCounter=0
+PASS [TEST 5]: All 16 quests completed in order + all 6 multi-step out-of-order attempts blocked.
+
+[TEST 6] Rendering screenshots & automatic 56-map BG1 VRAM tilemap verification + tile-offset control ROM...
+  Maps Audited in BG1 VRAM  : 56/56 (26019 tiles verified via bus read, 0 mismatches)
+  Screenshots Captured      : 77 PNGs in screenshots/ (56 maps, 12 battle types, plating, dex, bag, box, name entry, credits, postgame)
+  Positive Control (tests/controls/control_tile_offset.gba): CAUGHT -> 26019 tile mismatches (Map #0 (cruston_town) at (0,0): VRAM=15 vs REF=14)
+PASS [TEST 6]: All 56 map VRAM tilemaps matched 100% + screenshots captured + tile-offset control caught.
+
+[TEST 7] Audio 60-second note-event stream across all 18 tracks vs MUSIC_TRACKS + transposed control ROM...
+  Music Tracks Audited (60s): 18/18 tracks (3,600 frames each = 64,800 frames)
+  Total Note Events Matched : 8178 across Pulse 1, Pulse 2, Wave, and Noise
+  Positive Control (tests/controls/control_transposed_track.gba): CAUGHT -> Track title frame 0 ch 0: expected {"trackId":0,"channel":0,"midi":72,"dur":1,"noteIndex":0,"stepFrame":0}, got {"trackId":0,"channel":0,"midi":74,"dur":1,"noteIndex":0,"stepFrame":0}
+PASS [TEST 7]: All 18 tracks matched MUSIC_TRACKS for 60s + transposed track control failed as expected.
+
+[TEST 8] Saves (full 151-species save, 3 independent slots, checksum corruption, html-save-to-sav.py round-trip & full-box cap)...
+  Full Save Slot Size       : 4,096 B / slot (3 slots = 12,288 B in 32,768 B SRAM, version=0x22, FNV-1a checksum)
+  Full Save Round-Trip      : PASS (151 seen/caught, 6 party, 151 box, 25 items, 8 seals, 16 quests, 12 secrets)
+  3 Independent Slots       : PASS (Slot 0 gold=99999, Slot 1 gold=11111, Slot 2 gold=22222)
+  Corrupted Checksum Test   : PASS (flipped checksum byte rejected -> clean fresh start on STARTER screen, 0 crashes)
+  HTML Save Converter       : PASS (JSON -> .sav -> ROM mailbox == JSON -> .sav -> JSON)
+  Full Box (151/151) Cap    : PASS (boxCount capped at 151 without overflow, dexCaughtBits updated cleanly)
+PASS [TEST 8]: All save requirements, 3 slots, checksum protection, HTML converter, and 151-box cap verified.
+
+[TEST 9] Second emulator check (mGBA)...
+  mGBA Status: mGBA is not available in this environment (checked PATH for mgba, mgba-qt, mgba-sdl; skipped 20-checkpoint second-emulator comparison per PROMPT.md instructions).
+PASS [TEST 9]: mGBA availability checked and reported per spec.
+
+[TEST 10] Lag counter audit across full overworld completion & quest replays...
+  Total Overworld Replay Frames : 7403 frames (3701 button presses, 97 map transitions)
+  Max Loading Frames / Transition: 1 frame(s) (spec limit <= 30 frames)
+  Cumulative Lag Counter        : 0 (0 lag frames outside declared loading frames; 0 lag frames total)
+PASS [TEST 10]: Lag counter stayed 0 throughout the entire overworld and quest replays.
+
+================================================================================
+ALL 10 NUMBERED TESTS AND ALL POSITIVE CONTROLS PASSED (10/10)
+================================================================================
