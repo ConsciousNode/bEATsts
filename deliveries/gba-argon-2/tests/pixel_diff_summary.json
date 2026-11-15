@@ -1,0 +1,132 @@
+{
+  "totalFrames": 7336,
+  "perfectFrames": 7335,
+  "matchedPixels": 281701928,
+  "totalPixels": 281702400,
+  "owPressCount": 3721,
+  "questPressCount": 3614,
+  "statsByScreen": {
+    "TITLE": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "SLOTS": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "STARTER": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "DIALOG": {
+      "frames": 150,
+      "matchedPixels": 5760000,
+      "totalPixels": 5760000,
+      "perfectFrames": 150
+    },
+    "OVERWORLD": {
+      "frames": 6131,
+      "matchedPixels": 235429928,
+      "totalPixels": 235430400,
+      "perfectFrames": 6130
+    },
+    "MENU": {
+      "frames": 13,
+      "matchedPixels": 499200,
+      "totalPixels": 499200,
+      "perfectFrames": 13
+    },
+    "PARTY": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "DEX": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "BOX": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "BAG": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "OPTIONS": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "CONTROLS": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "SHOP": {
+      "frames": 37,
+      "matchedPixels": 1420800,
+      "totalPixels": 1420800,
+      "perfectFrames": 37
+    },
+    "BATTLE": {
+      "frames": 995,
+      "matchedPixels": 38208000,
+      "totalPixels": 38208000,
+      "perfectFrames": 995
+    },
+    "CREDITS": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    }
+  },
+  "diffFrames": [
+    {
+      "idx": 2803,
+      "btn": "RIGHT",
+      "scr": "OVERWORLD",
+      "match": 37928,
+      "diffPixels": 472,
+      "firstDiff": {
+        "x": 37,
+        "y": 47,
+        "rom": "0x1882",
+        "ref": "0x10a3"
+      }
+    }
+  ],
+  "controls": {
+    "fontShift": {
+      "diffFrames": 150,
+      "totalFrames": 150,
+      "diffPixels": 132831
+    },
+    "noObj": {
+      "diffFrames": 123,
+      "totalFrames": 150,
+      "diffPixels": 120815
+    },
+    "hpShort": {
+      "diffFrames": 16,
+      "totalFrames": 150,
+      "diffPixels": 150
+    }
+  }
+}
