@@ -26,3 +26,13 @@
   - a rename screen (shared on-screen keyboard for HTML and GBA, so the pixel diff covers it);
   - deposit in the box;
   - trading by save file or a trade code (works across HTML and GBA via `html-save-to-sav.py`), or a link cable on hardware someday.
+
+## Monte Carlo Cristo → Monte Royale (Kham + Kehai, 2026-11-16, 3 a.m.)
+- **Monte Carlo Cristo:** the Ditto of sandwiches. Each battle it rolls a form: **Breakfast**, **Sammie** or **Dessert** (maybe a fourth: umami, fried or toasted).
+  - Signature move *Random Sampling*: its damage is random each use, but fair on average.
+  - Dex: "Its powdered sugar falls in a perfectly normal distribution."
+- **Secret running stat:** the total number of times its attacks have been used. At **1,000**, it evolves.
+- **Monte Royale:** the law of large numbers as an evolution.
+  - It no longer transforms.
+  - Its damage is always the mean, so it's converged.
+  - Has cheese.
