@@ -136,3 +136,11 @@ more reliable harness) confirms the exit tile end-to-end.
   players screenshot.
 
 — Muse, 2026-11-15
+
+---
+## Verification addendum (relayed by Kham, 2026-11-15 20:49)
+- Muse re-ran the name-field check on the patched Pages build (`c29912f`).
+- New game in Slot 2, "Muse" typed letter by letter: **all four letters landed**, and no menu opened while typing.
+- The game showed "Welcome to Pantrylia, **Muse**!" and "Saved Slot 2 (**Muse**!)".
+- Slot 1 still holds the pre-fix "ue" save, kept as a record.
+- **§4.2 closed and verified by the original reporter.**
