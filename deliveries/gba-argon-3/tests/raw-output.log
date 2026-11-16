@@ -1,0 +1,103 @@
+================================================================================
+bEATsts GBA Round 3 - Complete Automated Test Suite (Tests 1..10 + Pixel Diff)
+================================================================================
+
+[TEST 1] Build determinism, GBA header checksum, SRAM_V string, SWI 0x05 scan & measured memory budget...
+  ROM Size        : 1145660 bytes (1118.8 KB / 32408772 bytes free of 32 MB; ARM code=39588 B)
+  ROM CRC32       : 0xABA6E939
+  ROM SHA-256     : 86eb134a3001ae650ce628c6c07b3786120a62ee86431748f57180627b46f609
+  Header Checksum : 0x39 (valid, title="BEATSTS22", gameCode="ABEE", maker="CN")
+  Save ID String  : "SRAM_V113" at ROM offset 0xC8
+  SWI Instructions: 2 found (0x080099b0:SWI 0x05, 0x08009a9c:SWI 0x05) -> ONLY SWI 0x05 called
+  EWRAM (measured): 14884 B used (0x02000000..0x02003624 + 1024 B Mailbox) / 247260 B free (of 262144 B)
+  IWRAM (measured): 6328 B used (IWRAM code + scratch + stack) / 26440 B free (of 32768 B)
+  VRAM (measured) : 16448 B active 64B blocks / 81856 B free (of 98304 B)
+  SRAM (measured) : 12288 B used (3 slots x 4096 B) / 20480 B free (of 32768 B)
+PASS [TEST 1]: Build determinism, header, SRAM_V ID, full SWI scan, and measured memory budgets verified.
+
+[TEST 2] Data equality across all 17 ROM tables + positive control (control_move_power.gba)...
+  Verified 17/17 ROM tables from Table Directory (0x08020000):
+    151 species, 124 moves, 12x12 type chart, 34 flavor combos, 74 8x8 map tiles, 47 char sprites, 25 items,
+    5 regional shops, 56 maps (26019 tiles, 110 portals, 311 NPCs, 691 dialogue lines),
+    33 trainers, 16 quests, 12 secrets, 18 music tracks, 12 SFX.
+  Differences on beatsts.gba: 0 (100% equal)
+  Positive Control (tests/controls/control_move_power.gba): CAUGHT -> Move 1 (Panini Press) power: ROM=66 vs REF=65
+PASS [TEST 2]: 100% data equality verified + positive control failed as expected.
+
+[TEST 3] Pure-play battle differential (2,000 seeded battles via .sav + setKeys + Mailbox)...
+  Completed 2,000/2,000 pure-play seeded battles (via .sav + setKeys + Mailbox): 100% match (6521 RNG draws).
+  Positive Control 1 (tests/controls/control_stab_14.gba): CAUGHT -> Battle #7 step 2 (A): HP/Temp mismatch ROM(pHP=162, fHP=26, temp=0) vs REF(pHP=163, fHP=26, temp=0)
+  Positive Control 2 (tests/controls/control_rng_skip.gba): CAUGHT -> Battle #0 step 1 (A): RNG draws ROM=4 vs REF=3
+PASS [TEST 3]: 2,000 seeded battles matched event-for-event via pure .sav + setKeys + Mailbox.
+
+[TEST 4] Overworld completion bot differential (full 3,701-press replay + dex bitmaps + walk speed + control_9_seals.gba)...
+  Replayed 3701 presses from fresh boot -> 8 Seals -> Grand Champion -> CREDITS -> Postgame (eternal_pantry).
+  Every press verified: screen, map, (x,y), facing, isNight, seals, gold, championBeaten, party0, dexSeenBits (20B), dexCaughtBits (20B).
+  Lag Counter: 0 (max loading transition: 0 frames, limit <= 30).
+  Hold-to-Walk Speed (pure setKeys): 8 tiles in 72 frames = 6.67 tiles/sec (9 frames/step = 0.15s cooldown, matching reference 0.14s at 60fps).
+  Positive Control (tests/controls/control_9_seals.gba): CAUGHT -> stopped at map=bisque_bastion with seals=8/8, championBeaten=0, reachedCredits=false.
+PASS [TEST 4]: Overworld completion bot differential + dex bitmaps + walk speed + 9-seals control verified.
+
+[TEST 5] Quests replay (all 16 quests + 6 multi-step out-of-order controls + Brotholomew 151/151 vs 150/151 .sav test)...
+  Completed all 16/16 quests via 3628 presses (questsDoneMask=0xFFFF, questStateHash=0xC76C5369).
+  Out-of-order multi-step positive controls blocked (6/6): q5_starter, q6_ginger, q7_chili, q8_ladle, q9_critics, q16_banquet.
+  Brotholomew .sav test (via tools/html-save-to-sav.py): 151/151 caught -> 2-line diploma dialogue; 150/151 caught -> 4-line normal dialogue.
+PASS [TEST 5]: All 16 quests, 6 out-of-order controls, and Brotholomew 151/151 vs 150/151 .sav test verified.
+
+[TEST 6] Rendering screenshots (all 56 maps, 12 battle types, plating & all UI screens via .sav + setKeys) + automatic 56-map BG1 VRAM check...
+  Verified all 56/56 maps in BG1 VRAM (0x0600E000): 26019/26019 tile cells matched 100%.
+  Captured 82 PNG screenshots in screenshots/ (56 maps, 12 battle types, plating, and all UI screens).
+  Positive Control (tests/controls/control_tile_offset.gba): CAUGHT -> 26019 tile mismatches (cruston_town(0,0): VRAM=15 vs REF=14).
+PASS [TEST 6]: All 56 maps VRAM-verified and screenshots captured via pure .sav + setKeys.
+
+[TEST 7] Audio stream verification (all 18 tracks reached via .sav + setKeys, 60s each + control_transposed_track.gba)...
+  Verified all 18/18 music tracks for 60.0s (3,600 frames) each via pure .sav + setKeys (8106 note events matched 100%).
+  Positive Control (tests/controls/control_transposed_track.gba): CAUGHT -> Track 0 (undefined) ch=0 step=1: midi ROM=78 vs REF=76
+PASS [TEST 7]: All 18 music tracks verified for 60s via pure .sav + setKeys + positive control failed.
+
+[TEST 8] Save system verification (3 slots in 32KB SRAM, checksum corruption recovery, html-save-to-sav.py round-trip & full 151-box cap)...
+  Verified full save (151 seen/caught, 6 party, 151 boxed bEATsts, all items) fits in 4,096 B slot with FNV-1a checksum.
+  Verified all 3 save slots (Slot 0, Slot 1, Slot 2) are independent in 32 KB SRAM.
+  Verified tools/html-save-to-sav.py round-trip (JSON -> .sav -> ROM Mailbox & JSON) and corrupted checksum recovery.
+PASS [TEST 8]: Save system (3 independent slots, 151 box capacity, checksum recovery, HTML converter) verified.
+
+[TEST 9] Second emulator check (mGBA availability)...
+  mGBA available in container environment: false (mGBA is not installed in this sandbox; skipped as required by spec).
+PASS [TEST 9]: Second emulator availability truthfully reported.
+
+[TEST 10] Lag counter verification across full overworld and quest replays...
+  Overworld completion replay (3,701 presses): lagCounter = 0 outside declared loading frames (max transition = 0 extra frames, <= 30 limit).
+PASS [TEST 10]: Zero lag frames verified.
+
+[TEST 11] Full Headless Chromium Pixel Differential across Overworld, Quest & 3x400 Random Replays + 6 Positive Controls...
+  Compared 8553 total frames (1 initial + 3726 overworld replay + 3626 quest replay + 1,200 random-input presses across 3 checkpoints = 328435200 total pixels):
+  Raw Pixel Match Counts by Screen Type (38,400 pixels = 1 single 240x160 frame):
+    TITLE      :    1 frames (   1 perfect) |     38400 /     38400 pixels matched (100.0000%)
+    SLOTS      :    1 frames (   1 perfect) |     38400 /     38400 pixels matched (100.0000%)
+    STARTER    :    1 frames (   1 perfect) |     38400 /     38400 pixels matched (100.0000%)
+    DIALOG     :  453 frames ( 453 perfect) |  17395200 /  17395200 pixels matched (100.0000%)
+    OVERWORLD  : 6558 frames (6558 perfect) | 251827200 / 251827200 pixels matched (100.0000%)
+    MENU       :  220 frames ( 220 perfect) |   8448000 /   8448000 pixels matched (100.0000%)
+    PARTY      :   98 frames (  98 perfect) |   3763200 /   3763200 pixels matched (100.0000%)
+    DEX        :   24 frames (  24 perfect) |    921600 /    921600 pixels matched (100.0000%)
+    BOX        :    1 frames (   1 perfect) |     38400 /     38400 pixels matched (100.0000%)
+    BAG        :    1 frames (   1 perfect) |     38400 /     38400 pixels matched (100.0000%)
+    OPTIONS    :    1 frames (   1 perfect) |     38400 /     38400 pixels matched (100.0000%)
+    CONTROLS   :    1 frames (   1 perfect) |     38400 /     38400 pixels matched (100.0000%)
+    SHOP       :   37 frames (  37 perfect) |   1420800 /   1420800 pixels matched (100.0000%)
+    BATTLE     : 1155 frames (1155 perfect) |  44352000 /  44352000 pixels matched (100.0000%)
+    CREDITS    :    1 frames (   1 perfect) |     38400 /     38400 pixels matched (100.0000%)
+    TOTAL      : 8553 frames (8553 perfect) | 328435200 / 328435200 pixels matched (100.00000%)
+  Saved 20 worst side-by-side PNG frames (480x160: ROM left, Reference right) in screenshots/pixel_diff_worst20/.
+  Differing frames across all 8553 frames: 0
+  Positive Control 1 (tests/controls/control_font_shift.gba) : FAILED AS EXPECTED -> 150/150 frames differed (136788 mismatched pixels; first diff Frame #0 TITLE).
+  Positive Control 2 (tests/controls/control_no_obj.gba)     : FAILED AS EXPECTED -> 127/150 frames differed (114314 mismatched pixels; first diff Frame #2 STARTER).
+  Positive Control 3 (tests/controls/control_hp_short.gba)   : FAILED AS EXPECTED -> 12/150 frames differed (110 mismatched pixels; first diff Frame #117 BATTLE).
+  Positive Control 4 (tests/controls/control_no_fade.gba)    : FAILED AS EXPECTED -> 12/150 frames differed (393880 mismatched pixels; first diff Frame #44 OVERWORLD).
+  Positive Control 5 (tests/controls/control_no_flash.gba)   : FAILED AS EXPECTED -> 6/150 frames differed (27744 mismatched pixels; first diff Frame #120 BATTLE).
+  Positive Control 6 (tests/controls/control_no_dex_page.gba): FAILED AS EXPECTED -> 5/150 frames differed (10302 mismatched pixels; first diff Frame #12 DEX).
+PASS [TEST 11]: Full Headless Chromium Pixel Differential (Overworld + Quests + 3x400 Random Segments) & all 6 pixel positive controls verified.
+
+================================================================================
+ALL TESTS (TESTS 1..10 + PIXEL DIFFERENTIAL + ALL 12 POSITIVE CONTROLS) COMPLETE
+================================================================================

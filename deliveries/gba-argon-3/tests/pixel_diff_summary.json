@@ -1,0 +1,134 @@
+{
+  "totalFrames": 8553,
+  "perfectFrames": 8553,
+  "matchedPixels": 328435200,
+  "totalPixels": 328435200,
+  "owPressCount": 3726,
+  "questPressCount": 3626,
+  "randomPressCount": 1200,
+  "statsByScreen": {
+    "TITLE": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "SLOTS": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "STARTER": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "DIALOG": {
+      "frames": 453,
+      "matchedPixels": 17395200,
+      "totalPixels": 17395200,
+      "perfectFrames": 453
+    },
+    "OVERWORLD": {
+      "frames": 6558,
+      "matchedPixels": 251827200,
+      "totalPixels": 251827200,
+      "perfectFrames": 6558
+    },
+    "MENU": {
+      "frames": 220,
+      "matchedPixels": 8448000,
+      "totalPixels": 8448000,
+      "perfectFrames": 220
+    },
+    "PARTY": {
+      "frames": 98,
+      "matchedPixels": 3763200,
+      "totalPixels": 3763200,
+      "perfectFrames": 98
+    },
+    "DEX": {
+      "frames": 24,
+      "matchedPixels": 921600,
+      "totalPixels": 921600,
+      "perfectFrames": 24
+    },
+    "BOX": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "BAG": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "OPTIONS": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "CONTROLS": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    },
+    "SHOP": {
+      "frames": 37,
+      "matchedPixels": 1420800,
+      "totalPixels": 1420800,
+      "perfectFrames": 37
+    },
+    "BATTLE": {
+      "frames": 1155,
+      "matchedPixels": 44352000,
+      "totalPixels": 44352000,
+      "perfectFrames": 1155
+    },
+    "CREDITS": {
+      "frames": 1,
+      "matchedPixels": 38400,
+      "totalPixels": 38400,
+      "perfectFrames": 1
+    }
+  },
+  "diffFrames": [],
+  "controls": {
+    "fontShift": {
+      "diffFrames": 150,
+      "totalFrames": 150,
+      "diffPixels": 136788
+    },
+    "noObj": {
+      "diffFrames": 127,
+      "totalFrames": 150,
+      "diffPixels": 114314
+    },
+    "hpShort": {
+      "diffFrames": 12,
+      "totalFrames": 150,
+      "diffPixels": 110
+    },
+    "noFade": {
+      "diffFrames": 12,
+      "totalFrames": 150,
+      "diffPixels": 393880
+    },
+    "noFlash": {
+      "diffFrames": 6,
+      "totalFrames": 150,
+      "diffPixels": 27744
+    },
+    "noDexPage": {
+      "diffFrames": 5,
+      "totalFrames": 150,
+      "diffPixels": 10302
+    }
+  }
+}
