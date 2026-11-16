@@ -13,3 +13,16 @@
 - **Outdoor exits (route to route, town to route):** as wide as the path leading to them, up to **3 tiles max**. Every tile of the opening is a portal.
 - **Building and dungeon entrances/exits:** exactly the width of the door.
 - Today every map-to-map exit is a single tile, e.g. Cruston Town's 4-wide north road narrows to a 1-tile gap at (16,0).
+
+## Naming, storage and trading: current state (checked 2026-11-15)
+- **Nicknames:** every bEATst has a `nickname` field, but it's always the species name. There's no screen to rename one, in the HTML or on the GBA.
+- **Player name:**
+  - HTML: the text field under the game.
+  - GBA: Argon added an on-screen keyboard (`NAME_ENTRY`), reached by pressing **SELECT on the starter screen** (L/R switch case). Easy to miss.
+  - It isn't covered by the pixel differential, because the HTML has no matching screen.
+- **Storage box:** caught bEATsts go to the box when the party is full, and the box can **withdraw** (A moves one into the party). **There's no deposit**: you can't put a party member into the box.
+- **Trading:** none.
+- **Possible features:**
+  - a rename screen (shared on-screen keyboard for HTML and GBA, so the pixel diff covers it);
+  - deposit in the box;
+  - trading by save file or a trade code (works across HTML and GBA via `html-save-to-sav.py`), or a link cable on hardware someday.
