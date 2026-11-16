@@ -8,3 +8,8 @@
 ## Day/night (note)
 - Currently step-based: it flips every 40 steps (`07_game_engine.js` ~l.649), plus a SELECT toggle.
 - It runs indoors because you're still walking. Kham likes that it doesn't pause in buildings. Keep it.
+
+## Exit width rule (Kham, 2026-11-15)
+- **Outdoor exits (route to route, town to route):** as wide as the path leading to them, up to **3 tiles max**. Every tile of the opening is a portal.
+- **Building and dungeon entrances/exits:** exactly the width of the door.
+- Today every map-to-map exit is a single tile, e.g. Cruston Town's 4-wide north road narrows to a 1-tile gap at (16,0).
