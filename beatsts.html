@@ -2301,8 +2301,27 @@ const Game = {
     if (m) AudioEngine.playMusic(m.music);
   },
 
+  // KEHAI FIX (2026-11-15, playtest): the box holds 4 wrapped lines of 27 chars and never paged, so
+  // 388 of 691 NPC lines overflowed below the box and their tails were lost when A/B advanced.
+  // Split every entry into 4-line pages using the same wrap rule renderDialog uses.
+  paginateDialog(text) {
+    const words = toAsciiFontStr(String(text)).split(' ');
+    const rows = [];
+    let line = '';
+    for (const w of words) {
+      if ((line + w).length > 27) { rows.push(line.trimEnd()); line = w + ' '; }
+      else line += w + ' ';
+    }
+    if (line.trim()) rows.push(line.trimEnd());
+    const pages = [];
+    for (let i = 0; i < rows.length; i += 4) pages.push(rows.slice(i, i + 4).join(' '));
+    return pages.length ? pages : [''];
+  },
+
   showDialog(lines, cb = null) {
-    this.dialogQueue = Array.isArray(lines) ? lines.slice() : [lines];
+    const raw = Array.isArray(lines) ? lines.slice() : [lines];
+    this.dialogQueue = [];
+    for (const l of raw) this.dialogQueue.push(...this.paginateDialog(l));
     this.dialogCallback = cb;
     this.screen = 'DIALOG';
   },
@@ -2327,11 +2346,16 @@ const Game = {
       if (k === 'z' || k === 'Z' || k === 'Enter' || k === ' ') return 'A';
       if (k === 'x' || k === 'X' || k === 'Escape' || k === 'Backspace') return 'B';
       if (k === 'm' || k === 'M') return 'START';
-      if (k === 'n' || k === 'N' || k === 'Tab') return 'SELECT';
+      // KEHAI FIX (2026-11-15): Tab no longer maps to SELECT (SELECT toggles day/night; Tab is for page focus).
+      if (k === 'n' || k === 'N') return 'SELECT';
       return null;
     };
 
+    // KEHAI FIX (2026-11-15, Muse playtest): game keys were read even while typing in the name field,
+    // eating letters (W A S D Z X M N, Space, Backspace...) and acting on them. Ignore keys while a text field has focus.
+    const typing = () => { const a = document.activeElement; return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA'); };
     window.addEventListener('keydown', (e) => {
+      if (typing()) return;
       const btn = mapKey(e.key);
       if (btn) {
         e.preventDefault();
@@ -2340,6 +2364,7 @@ const Game = {
       }
     });
     window.addEventListener('keyup', (e) => {
+      if (typing()) return;
       const btn = mapKey(e.key);
       if (btn) this.keyState[btn] = false;
     });

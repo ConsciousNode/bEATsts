@@ -1,0 +1,16 @@
+PASS: 151 bEATsts + 18 unique named chars (4 dirs x 3 frames) + 12 generic villagers verified.
+PASS: 151/151 species obtainable (positive control without #6 dropped to 149/151).
+PASS: Dialogue total=916, unique=906, uniqueCollapsed=899 (>= 800), 0 numbered NPCs.
+PASS: 56 maps, 110/110 portals reachable, maxSameSim=0.499 (<=0.50), maxDiffSlidingSim=0.496 (<=0.50), repainted copy failed as expected.
+PASS: 18 tracks (914.52s) non-silent.
+PASS: Fonts verified, strict CSP & static scan passed.
+PASS: Zero franchise name collisions.
+PASS: 1 tap moved 1 tile, 1s hold moved 7 tiles, positive control caught.
+PASS: Completion bot reached CREDITS & Postgame (eternal_pantry)! Seals=8/8, Steps=2290, Battles=75, Party=[Clubbehemoth L84]
+PASS: Whole-bot positive control (blocked Grand Tasting Hall) failed as expected at map=chrome_fork_hq_f2 after 2186 steps.
+PASS: All 16/16 quests completed via pressButton only!
+PASS: Walking Dex bot plated all 112 wild-sourced species (dex total 120/151 incl. disclosed starter-line marks; evolution-only species covered by Test 2) across 22 wild areas (steps=2961, battles=241, ladle=1).
+PASS: Whole-bot Dex positive control (species #24 removed) plated one fewer as expected (119 vs 120).
+PASS: Save persisted across real HTTP page reload.
+PASS: Phone touch controls moved player (14,12 -> 14,11).
+ALL 13 TESTS PASSED!
