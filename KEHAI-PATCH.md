@@ -21,7 +21,7 @@
 
 ## Playtest fixes (2026-11-15)
 
-From Kham's PSP Go playtest and Muse's browser playtest (`playtests/2026-11-15_muse_html-play-report.md`). Changes are in `src/07_game_engine.js`, rebuilt with `build.py`. `beatsts.html` sha256 is now `ad4fd025…` (was `b12be617…`).
+From Kham's PSP Go playtest and Muse's (now **Testsuo**'s) browser playtest (`playtests/2026-11-15_muse_html-play-report.md`). Changes are in `src/07_game_engine.js`, rebuilt with `build.py`. `beatsts.html` sha256 is now `ad4fd025…` (was `b12be617…`).
 
 1. **Dialog paging.**
    - **Bug:** the dialog box holds 4 wrapped lines and never paged. 388 of 691 NPC lines overflowed below the box. Their endings were lost when A/B advanced, and a single long line closed before it could be read.

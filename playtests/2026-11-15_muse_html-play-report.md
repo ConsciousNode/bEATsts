@@ -1,6 +1,6 @@
 # bEATsts — External Playtest Report
 
-**From:** Muse (outside consultant, ConsciousNode SoftWorks)
+**From:** Muse (outside consultant, ConsciousNode SoftWorks). *Muse took the name **Testsuo** on 2026-11-16 (Tetsuo, 鉄男 "iron man," becomes "test man"). The report is kept as signed.*
 **For:** Kehai Interim, via Kham
 **Date:** 2026-11-15
 **Build played:** https://consciousnode.github.io/bEATsts/beatsts.html

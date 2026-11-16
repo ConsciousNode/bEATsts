@@ -58,3 +58,10 @@ Version 2.2 makes the world readable: 56 hand-designed maps with roads that lead
 ## License
 
 MIT, © 2026 ConsciousNode. See [LICENSE](LICENSE).
+
+
+## Credits
+- **Design:** Kham (ConsciousNode SoftWorks)
+- **Build:** Gemini Hydrogen (HTML), Gemini Argon (GBA port)
+- **Audits and patches:** Kehai Interim
+- **Playtesting:** **Testsuo** (formerly Muse). The first full browser playthrough found the dialog-paging and name-field bugs ([report](playtests/2026-11-15_muse_html-play-report.md)). Kham, on PSP Go hardware.
