@@ -29,8 +29,14 @@
 
 ## Redesign: cooking/breeding mechanic, three food schools, and the brothers arc (Kham + Kehai, 2026-11-18)
 
+### Genesis of the redesign
+bEATsts was originally a goof — a test of what Argon would do when given creative control of a monster collection game built around sandwiches. The plating mechanic (how you catch bEATsts) was a Kehai suggestion intentionally chosen over a Pokéball-style throw to sidestep the Palworld lawsuit situation. The sandwich/food theme turned out to be genuinely rich, and the redesign leans all the way into it.
+
+### Extended roster
+Keep **151 core bEATsts** as the main dex — the ones available through normal play, wild encounters, and the cooking/breeding system. Beyond 151: an extended roster available only through **special zones, special conditions, and secrets** — post-game areas, specific environmental triggers, side quests, things players discover rather than complete. The extended roster isn't counted in the main dex completion. This keeps the core feel of 151 while giving dedicated players more to find.
+
 ### Core cooking/breeding mechanic
-Breeding is replaced (or supplemented) by a **cooking mini-game** — think Dragon Warrior: Monsters level of complexity. Variables:
+Breeding is replaced (or supplemented) by a **cooking mini-game** — target complexity: Dragon Warrior: Monsters. Not simple. Not just "combine two things." Results depend on multiple interacting variables and reward player knowledge. Variables:
 - **Timing** — when in the cook you do things matters
 - **Ingredients** — collectible like berries; each school (fermented/engineered/processed) has its own ingredient set
 - **Conditions** — location, time of day (step-based), temperature (cold vs. hot environment)
@@ -39,6 +45,18 @@ Breeding is replaced (or supplemented) by a **cooking mini-game** — think Drag
 - **Fermentation:** has a **step-count wait** mechanic — you start the ferment, walk steps, come back. Different ferments need different step counts. Some lineages are only accessible by waiting out the full ferment cycle.
 - **Starter cultures:** fermentation requires a starter batch, specific per lineage. Getting the right starter is part of the quest.
 - **Cooking with love:** bonus mechanic — intentionally using high-level bEATsts as ingredients. They're consumed. Unlocks rare results. The player has to choose to sacrifice something they've leveled up.
+
+### Food fusion: how new bEATsts are created
+The cooking mini-game IS the breeding system. You're not combining items — you're combining **bEATsts themselves as ingredients** to cook a new one. The base bEATsts used as ingredients are consumed in the process (unless you're using the perpetual processed ingredients from Salvatore, which work differently — see school notes below).
+
+This means:
+- Every fusion result is a decision with a cost
+- Higher-level input bEATsts = "cooking with love" bonus = rarer or stronger results
+- The same species can cook into different things depending on school ingredients, conditions, and doneness
+- Some lineages are only reachable via specific schools (fermented-only, engineered-only, etc.)
+- Some lineages require combining across schools — which is exactly what SnacKing's mother was working on
+
+The food fusion framing is also the narrative frame for why bEATsts exist at all in this world: someone figured out you could cook with them, and the world changed.
 
 ### The three food schools and their NPCs
 
